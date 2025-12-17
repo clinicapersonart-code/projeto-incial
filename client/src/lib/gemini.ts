@@ -1,7 +1,5 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 
-// Define global types for Vite environment variables to resolve TypeScript errors
-// when vite/client types are not automatically detected.
 declare global {
   interface ImportMetaEnv {
     readonly VITE_GEMINI_API_KEY: string;
@@ -12,78 +10,167 @@ declare global {
   }
 }
 
-// Schema for structured output
-const analysisSchema: Schema = {
+// --- COMPLEX SCHEMAS FOR STRUCTURED OUTPUT ---
+
+// Helper definition moved up to avoid "used before declaration" error
+const EvidenceSchemaWithSource: Schema = {
   type: Type.OBJECT,
   properties: {
-    analise_processo: {
-      type: Type.STRING,
-      description: "Identificação do processo central (ex: inflexibilidade, fusão) e análise de rede (nós e arestas).",
-    },
-    intervencao_sugerida: {
-      type: Type.STRING,
-      description: "Técnica específica dos manuais (Barlow/Beck) com referência.",
-    },
-    sugestao_fala: {
-      type: Type.STRING,
-      description: "Script exato ou pergunta socrática para o terapeuta.",
-    },
-    metafora: {
-      type: Type.STRING,
-      description: "Analogia curta (Estoicismo/Neurociência) para explicar o conceito.",
-    },
-    alerta_risco: {
-      type: Type.BOOLEAN,
-      description: "True se houver risco de suicídio ou autolesão identificado.",
-    },
+    conteudo: { type: Type.STRING },
+    citacao: { type: Type.STRING },
   },
-  required: ["analise_processo", "intervencao_sugerida", "sugestao_fala", "metafora", "alerta_risco"],
+  required: ["conteudo", "citacao"]
 };
 
+// 1. Evidence/Grounding Schema (Reutilizável)
+const evidenceSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    conteudo: { type: Type.STRING, description: "A informação extraída ou sugerida." },
+    citacao: { type: Type.STRING, description: "O trecho EXATO do texto original que justifica esta informação. Se não houver, deixe vazio." },
+    confianca: { type: Type.NUMBER, description: "Nível de confiança de 0.0 a 1.0" }
+  },
+  required: ["conteudo", "citacao", "confianca"]
+};
+
+// 2. SOAP Schema
+const soapSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    queixa_principal: { type: Type.STRING },
+    subjetivo: {
+      type: Type.ARRAY,
+      items: EvidenceSchemaWithSource, // Using evidence structure
+      description: "Pontos chave relatados pelo paciente, com citações."
+    },
+    objetivo: { type: Type.STRING, description: "Observações comportamentais do terapeuta." },
+    avaliacao: { type: Type.STRING, description: "Síntese clínica da sessão." },
+    plano: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Próximos passos práticos." }
+  },
+  required: ["queixa_principal", "subjetivo", "objetivo", "avaliacao", "plano"]
+};
+
+// 3. PBT Network Schema (Nodes & Edges)
+const pbtSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    nodes: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING, description: "Identificador único do processo (ex: 'ruminacao')" },
+          label: { type: Type.STRING, description: "Descrição do conteúdo (Ex: 'Tenho que ser forte')" },
+          category: { type: Type.STRING, enum: ["Cognitiva", "Afetiva", "Comportamento", "Self", "Contexto", "Motivacional", "Sociocultural", "Atencional", "Biofisiológica"], description: "Categoria PBT oficial" },
+          change: { type: Type.STRING, enum: ["aumentou", "diminuiu", "estavel", "novo"], description: "Mudança em relação à base" }
+        },
+        required: ["id", "label", "category", "change"]
+      }
+    },
+    edges: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          source: { type: Type.STRING, description: "ID do nó de origem" },
+          target: { type: Type.STRING, description: "ID do nó de destino" },
+          relation: { type: Type.STRING, description: "Descrição da relação (ex: 'ativa', 'mantém')" },
+          weight: { type: Type.STRING, enum: ["fraco", "moderado", "forte"], description: "Força da conexão" }
+        },
+        required: ["source", "target", "relation", "weight"]
+      }
+    }
+  },
+  required: ["nodes", "edges"]
+};
+
+// 4. Adaptation Logic Schema
+const adaptationSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    gatilho_identificado: { type: Type.BOOLEAN, description: "True se houver necessidade de adaptar tratamento." },
+    motivo_adapacao: { type: Type.STRING, description: "Por que adaptar? (Ex: Estagnação, Risco)." },
+    sugestoes: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          acao: { type: Type.STRING, description: "Ação sugerida (ex: 'Introduzir Mindfulness')" },
+          justificativa_pbt: { type: Type.STRING, description: "Por que isso ajuda na rede atual?" }
+        },
+        required: ["acao", "justificativa_pbt"]
+      }
+    }
+  },
+  required: ["gatilho_identificado"]
+};
+
+// Master Schema combining all
+const masterSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    soap: soapSchema,
+    pbt_network: pbtSchema,
+    adaptacao: adaptationSchema,
+    analise_original: { // Mantendo compatibilidade com cards antigos
+      type: Type.OBJECT,
+      properties: {
+        sugestao_fala: { type: Type.STRING },
+        metafora: { type: Type.STRING },
+        alerta_risco: { type: Type.BOOLEAN }
+      },
+      required: ["sugestao_fala", "metafora", "alerta_risco"]
+    }
+  },
+  required: ["soap", "pbt_network", "adaptacao", "analise_original"]
+};
+
+// Auxiliary definition helper for recursion workaround if needed, 
+// strictly defined above instead for simplicity in this iteration.
+
+
+
 export const systemInstruction = `
-VOCÊ É: Um Assistente Clínico Sênior e Supervisor especializado em Terapia Cognitivo-Comportamental (TCC) e Terapia Baseada em Processos (PBT). Sua função é auxiliar o terapeuta durante e após as sessões com análises técnicas, precisas e baseadas estritamente em evidências.
+VOCÊ É: O "Copiloto Clínico PBE", um assistente de auditoria para terapeutas.
+SUA MISSÃO: Estruturar dados clínicos, mapear processos e sugerir intervenções com RASTREABILIDADE TOTAL.
 
-SUA BASE DE CONHECIMENTO (FONTE DA VERDADE):
-Você deve basear suas respostas EXCLUSIVAMENTE nos conceitos dos seguintes materiais:
-1. Para Protocolos e Estrutura: Manual de Barlow (Protocolo Unificado) e Judith Beck (TCC).
-2. Para Análise Funcional: PBT (Hayes/Hofmann) para identificar processos (ex: Evitação, Ruminação, Fusão).
-3. Para Intervenções: Questionamento Socrático e Entrevista Motivacional.
-4. Para Metáforas: Estoicismo e Ouspensky APENAS para criar metáforas ilustrativas. NUNCA use estes textos para diagnóstico ou conduta clínica.
-5. Para Psicoeducação: Neurociência (Kandel/Bear/Lent) para explicar mecanismos biológicos.
+REGRAS DE OURO (THE 4 LOCKS):
+1. GROUNDING (RASTREABILIDADE): Você não pode inventar fatos. Para cada ponto subjetivo do SOAP, você DEVE extrair uma citação direta do texto original que comprove aquela afirmação.
+2. AUDITOR HUMILDE: Use linguagem probabilística ("Sugere-se", "Evidências indicam"). Nunca dê ordens.
+3. TAXONOMIA PBT: Ao criar nós da rede, use preferencialmente termos da TCC/ACT/PBT (ex: Evitação, Fusão, Atenção Flexível).
+4. ESTRUTURA RÍGIDA: Responda APENAS no formato JSON solicitado.
 
-SUAS DIRETRIZES DE OPERAÇÃO:
-- ANÁLISE DE REDE (PBT): Ao receber uma fala do paciente, não dê apenas um diagnóstico (CID/DSM). Identifique os "Nós" da rede (Emoção, Cognição, Comportamento) e as "Arestas" (o que leva a quê). Ex: "O pensamento X ativou a ansiedade Y que levou à evitação Z".
-- GROUNDING (ANCORAGEM): Sempre que sugerir uma técnica, cite a fonte (ex: Beck, Barlow).
-- SEGURANÇA: Se identificar risco de suicídio ou autolesão na fala, marque o campo 'alerta_risco' como true e inicie a análise com um ALERTA VERMELHO.
-- TOM DE VOZ: Profissional, clínico, direto e empático. Fale em Português do Brasil.
-
-O retorno deve ser estritamente no formato JSON solicitado.
+TAREFAS:
+- Gerar SOAP completo.
+- Mapear Rede PBT (Nós = Processos, Arestas = Relações de Causalidade).
+- Verificar Gatilhos de Adaptação (Risco alto, falta de progresso evidente no texto).
 `;
 
 export const analyzeCase = async (sessionNotes: string) => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
 
   if (!apiKey) {
-    throw new Error("Chave de API não encontrada. Verifique VITE_GEMINI_API_KEY no arquivo .env");
+    throw new Error("Chave de API não encontrada.");
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash-exp", // Usando versão experimental mais rápida e melhor em JSON se disponível, ou fallback
       contents: sessionNotes,
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        responseSchema: analysisSchema,
-        temperature: 0.7, // Slightly creative for metaphors, but grounded
+        responseSchema: masterSchema,
+        temperature: 0.2, // Baixa criatividade para fidelidade aos dados
       },
     });
 
     return JSON.parse(response.text || "{}");
   } catch (error) {
     console.error("Error analyzing case:", error);
+    // Fallback simples para não quebrar a UI se o modelo falhar no JSON complexo
     throw error;
   }
 };

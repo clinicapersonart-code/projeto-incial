@@ -25,7 +25,8 @@ export const PatientDashboard: React.FC = () => {
         if (messages.length === 0) {
             setMessages([{
                 role: 'assistant',
-                content: `Olá! Sou o **Curador de Memória** do paciente **${currentPatient?.name}**.
+                // MUDANÇA: Curador -> Prontuário Inteligente
+                content: `Olá! Sou o **Assistente de Prontuário** do paciente **${currentPatient?.name}**.
                 
 Tenho acesso a todo o histórico de sessões e evoluções.  
 Você pode me perguntar coisas como:
@@ -51,7 +52,6 @@ Você pode me perguntar coisas como:
         setIsLoading(true);
 
         try {
-            // 1. Prepare Local Context (Local RAG)
             const historyContext = currentPatient.clinicalRecords.sessions
                 .map(s => `[DATA: ${new Date(s.date).toLocaleDateString()}]
 QUEIXA: ${s.soap.queixa_principal}
@@ -61,47 +61,41 @@ RELATO BRUTO: ${s.notes}
 ---`)
                 .join('\n');
 
-            // 2. Call Gemini with context
             const response = await chatWithPatientHistory(historyContext, userMsg);
 
             setMessages(prev => [...prev, { role: 'assistant', content: response }]);
 
         } catch (error) {
             console.error(error);
-            setMessages(prev => [...prev, { role: 'assistant', content: "Desculpe, tive um erro ao acessar a memória do paciente." }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Desculpe, tive um erro ao acessar o prontuário." }]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Get latest PBT network for Center View
     const latestPBT = currentPatient?.clinicalRecords.sessions[0]?.pbtNetwork || { nodes: [], edges: [] };
 
     return (
         <div className="flex h-[calc(100vh-8rem)] gap-4 animate-in fade-in zoom-in-95 duration-500">
-            {/* LEFT: TIMELINE (Reusing component logic or implementing simplified view) */}
+            {/* LEFT: TIMELINE */}
             <div className="w-80 flex-none bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col shadow-md">
                 <div className="p-4 border-b border-gray-200 flex items-center gap-2 bg-gradient-to-br from-blue-50 to-white">
                     <History className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-bold text-gray-900 text-sm">LINHA DO TEMPO</h3>
+                    <h3 className="font-bold text-gray-900 text-sm">HISTÓRICO DE SESSÕES</h3>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 bg-gray-50">
                     <SessionTimeline
                         sessions={currentPatient?.clinicalRecords.sessions || []}
-                        onSelectSession={() => { }} // In dashboard maybe just highlight?
+                        onSelectSession={() => { }} 
                     />
                 </div>
             </div>
 
             {/* CENTER: VISUALIZATION & PLANNING */}
             <div className="flex-1 flex flex-col gap-4">
-                {/* GPS / Alignment */}
                 <TopicAlignmentCard />
-
-                {/* Session Planner Card */}
                 <SessionPlanner />
 
-                {/* PBT Network */}
                 <div className="flex-1 bg-white rounded-xl border border-gray-200 flex flex-col relative overflow-hidden shadow-sm">
                     <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur px-3 py-1 rounded-full border border-purple-100 flex items-center gap-2 shadow-sm">
                         <BrainCircuit className="w-4 h-4 text-purple-600" />
@@ -127,8 +121,9 @@ RELATO BRUTO: ${s.notes}
                         <Bot className="w-5 h-5 text-teal-600" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-gray-900 text-sm">MEMÓRIA CLÍNICA</h3>
-                        <p className="text-[10px] text-gray-500">Contexto: Apenas este paciente</p>
+                        {/* MUDANÇA: Memória -> Prontuário */}
+                        <h3 className="font-bold text-gray-900 text-sm">PRONTUÁRIO INTELIGENTE</h3>
+                        <p className="text-[10px] text-gray-500">Busca em todo o histórico</p>
                     </div>
                 </div>
 

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Patient } from '../types/patient';
+import { migratePatientToEells, initializeEellsData } from '../lib/data-migration';
 
 interface PatientContextType {
     patients: Patient[];
@@ -24,7 +25,10 @@ export const PatientProvider: React.FC<{ children: ReactNode }> = ({ children })
         const saved = localStorage.getItem('clinic_patients');
         if (saved) {
             try {
-                setPatients(JSON.parse(saved));
+                const loaded = JSON.parse(saved);
+                // Auto-migrar pacientes antigos para formato Eells
+                const migrated = loaded.map((p: Patient) => migratePatientToEells(p));
+                setPatients(migrated);
             } catch (e) {
                 console.error("Failed to parse patients from local storage", e);
             }
@@ -50,8 +54,10 @@ export const PatientProvider: React.FC<{ children: ReactNode }> = ({ children })
                 caseFormulation: { content: "", updatedAt: new Date().toISOString() },
                 treatmentPlan: { goals: [], updatedAt: new Date().toISOString() },
                 assessments: [],
+                customProtocols: [],
                 sessions: []
-            }
+            },
+            eellsData: initializeEellsData()
         };
         setPatients(prev => [...prev, newPatient]);
         // Auto select new patient? Maybe not.

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { usePatients } from '../context/PatientContext';
 import { analyzeTopicAlignment } from '../lib/gemini';
-import { Compass, RefreshCw, AlertCircle, ArrowRight, Zap, Anchor } from 'lucide-react';
+import { Target, RefreshCw, AlertCircle, ArrowRight, Zap, Anchor } from 'lucide-react';
 import { TopicAlignment } from '../types/patient';
 
 export const TopicAlignmentCard: React.FC = () => {
@@ -43,9 +43,9 @@ export const TopicAlignmentCard: React.FC = () => {
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
             <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Compass className="w-5 h-5 text-indigo-600" />
+                    <Target className="w-5 h-5 text-indigo-600" />
                     <div>
-                        <h3 className="font-bold text-gray-900 text-sm">GPS TERAPÊUTICO</h3>
+                        <h3 className="font-bold text-gray-900 text-sm">PLANO DE TRATAMENTO</h3>
                         <p className="text-[10px] text-gray-500 uppercase tracking-widest">Monitor de Foco</p>
                     </div>
                 </div>

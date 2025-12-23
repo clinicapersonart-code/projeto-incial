@@ -23,3 +23,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Documentation files
+docs/*
+!docs/core
+!docs/protocols_map.json
+!docs/readme.md

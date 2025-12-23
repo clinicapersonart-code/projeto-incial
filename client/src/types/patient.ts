@@ -1,5 +1,6 @@
 import { Assessment } from "./forms";
 import { EellsFormulation } from "./eells";
+import { EellsData } from "./eells";
 
 export interface Patient {
     id: string;
@@ -9,8 +10,15 @@ export interface Patient {
     phone?: string;
     createdAt: string;
 
+    // Diagnosis for hierarchical knowledge base
+    primaryDisorder?: 'panic' | 'depression' | 'ocd' | 'gad' | 'social_anxiety' | 'ptsd' | 'other';
+    comorbidities?: string[];
+
     // Records
     clinicalRecords: ClinicalRecords;
+
+    // Eells Model Data
+    eellsData?: EellsData;
 }
 
 export interface ClinicalRecords {

@@ -16,7 +16,7 @@ export const CurationWorkspace: React.FC = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newImages: string[] = [];
-            Array.from(e.target.files).forEach(file => {
+            Array.from(e.target.files).forEach((file: any) => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     if (typeof reader.result === 'string') {
@@ -136,7 +136,7 @@ Você é um auditor clínico com acesso total ao histórico.
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold flex items-center gap-2 text-white">
                             {mode === 'creator' ? <Sparkles className="w-6 h-6 text-pink-400" /> : <ShieldCheck className="w-6 h-6 text-emerald-400" />}
-                            {mode === 'creator' ? "Laboratório de Adaptação" : "Auditor de Conformidade"}
+                            Gestão de Prontuário
                         </h2>
                         <div className="flex bg-slate-950/50 rounded-lg p-1 border border-white/5">
                             <button
@@ -211,8 +211,8 @@ Você é um auditor clínico com acesso total ao histórico.
                         onClick={handleGenerate}
                         disabled={isLoading || (!prompt && images.length === 0)}
                         className={`w-full py-4 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${mode === 'creator'
-                                ? 'bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 shadow-pink-500/20'
-                                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/20'
+                            ? 'bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 shadow-pink-500/20'
+                            : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/20'
                             }`}
                     >
                         {isLoading ? <Loader2 className="animate-spin" /> : (mode === 'creator' ? <Sparkles className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />)}

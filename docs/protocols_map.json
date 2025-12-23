@@ -1,0 +1,38 @@
+{
+    "panic": {
+        "title": "Protocolo de Pânico",
+        "files": [
+            "protocols/panic/TerapiaCognitivacomportamental3°EdiçãoJudithS.BECK.pdf"
+        ],
+        "description": "TCC para transtorno de pânico - Exposição interoceptiva e reestruturação cognitiva",
+        "keywords": [
+            "pânico",
+            "ataque",
+            "ansiedade",
+            "hiperventilação",
+            "exposição"
+        ]
+    },
+    "depression": {
+        "title": "Protocolo de Depressão",
+        "files": [],
+        "description": "Futuro: Protocolo específico para depressão",
+        "keywords": [
+            "depressão",
+            "humor",
+            "anedonia",
+            "ativação"
+        ]
+    },
+    "ocd": {
+        "title": "Protocolo TOC",
+        "files": [],
+        "description": "Futuro: Protocolo para TOC",
+        "keywords": [
+            "toc",
+            "obsessão",
+            "compulsão",
+            "ritual"
+        ]
+    }
+}

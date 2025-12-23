@@ -34,7 +34,7 @@ export const AlchemyLab: React.FC = () => {
                 <div className="relative z-10">
                     <h2 className="text-2xl font-bold flex items-center gap-2 mb-2">
                         <Sparkles className="w-6 h-6 text-yellow-300" />
-                        Alchemy Lab
+                        Recursos Terapêuticos
                     </h2>
                     <p className="text-violet-100 max-w-lg">
                         Transforme protocolos rígidos em jornadas personalizadas.

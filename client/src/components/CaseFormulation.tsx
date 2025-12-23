@@ -103,7 +103,7 @@ export const CaseFormulation: React.FC = () => {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                     <FileText className="w-6 h-6 text-purple-400" />
                     Formulação de Caso (Eells)
                 </h2>
@@ -111,7 +111,7 @@ export const CaseFormulation: React.FC = () => {
                     <button
                         onClick={handleAutoFill}
                         disabled={isGenerating}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-500/20 transition-colors text-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-200 transition-colors text-sm"
                     >
                         {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                         Auto-Preencher com IA
@@ -131,17 +131,17 @@ export const CaseFormulation: React.FC = () => {
 
                 {/* 1. Problem List & Diagnosis Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-slate-900/50 p-4 rounded-xl border border-white/10 flex flex-col gap-2">
-                        <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-widest">Lista de Problemas</h3>
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-2">
+                        <h3 className="text-sm font-bold text-cyan-600 uppercase tracking-widest">Lista de Problemas</h3>
                         <textarea
                             value={formulation.problemList.redFlags}
                             onChange={(e) => handleChange('problemList', 'redFlags', e.target.value)}
-                            className="flex-1 bg-slate-950/50 border border-white/5 rounded p-2 text-sm text-slate-300 focus:outline-none focus:border-cyan-500/50 resize-null"
+                            className="flex-1 bg-gray-50 border border-gray-200 rounded p-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
                             placeholder="Sintomas, Queixas, Red Flags..."
                             rows={8}
                         />
                         <div className="flex flex-col gap-2 mt-2">
-                            <label className="flex items-center gap-2 text-xs text-slate-400">
+                            <label className="flex items-center gap-2 text-xs text-gray-600">
                                 <input
                                     type="checkbox"
                                     checked={formulation.problemList.suicidality}
@@ -149,7 +149,7 @@ export const CaseFormulation: React.FC = () => {
                                     className="rounded border-white/20 bg-slate-800"
                                 /> Risco de Suicídio
                             </label>
-                            <label className="flex items-center gap-2 text-xs text-slate-400">
+                            <label className="flex items-center gap-2 text-xs text-gray-600">
                                 <input
                                     type="checkbox"
                                     checked={formulation.problemList.chemicalDependence}
@@ -160,14 +160,14 @@ export const CaseFormulation: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="md:col-span-2 bg-slate-900/50 p-4 rounded-xl border border-white/10 flex flex-col gap-4">
+                    <div className="md:col-span-2 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-4">
                         <div className="flex flex-col gap-2">
                             <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-widest">Diagnóstico</h3>
                             <input
                                 type="text"
                                 value={formulation.diagnosis}
                                 onChange={(e) => handleChange('diagnosis', 'diagnosis', e.target.value)} // fix logic above for root keys
-                                className="bg-slate-950/50 border border-white/5 rounded p-2 text-sm text-slate-300 focus:outline-none focus:border-cyan-500/50"
+                                className="bg-gray-50 border border-gray-200 rounded p-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                 placeholder="DSM-5 / CID-11"
                             />
                         </div>

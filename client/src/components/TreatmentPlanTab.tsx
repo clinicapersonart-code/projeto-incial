@@ -69,11 +69,10 @@ export const TreatmentPlanTab: React.FC = () => {
 
     // Available protocols in /library folder
     const libraryProtocols = [
+        { name: 'Terapia Baseada em Processos (CORE)', file: 'core/Aprendendo a terapia baseada em processos_pesquisavel.pdf' },
         { name: 'Protocolo Unificado (Barlow)', file: 'AplicandoaTerapiaComportamentalDialéticaKellyKoerner.pdf' },
-        { name: 'TCC - Técnicas de Terapia Cognitiva', file: 'Técnicasdeterapiacognitiva-Manualdoterapeuta.pdf' },
         { name: 'ACT - Terapia de Aceitação e Compromisso', file: 'ACT_Terapia_de_aceitação_e_compromisso_2°_edição_Hayes.pdf' },
         { name: 'DBT - Terapia Dialética Comportamental', file: 'Terapia_comportamental_dialética_na_prática_clínica_aplicações.pdf' },
-        { name: 'Aprendendo Terapia Baseada em Processos', file: 'Aprendendo a terapia baseada em processos_pesquisavel.pdf' },
         { name: 'Prática Baseada em Evidências (Fundamentos)', file: 'Prática_baseada_em_evidências_em_psicologia_clínica_fundamentos.pdf' },
         { name: 'Formulação de Caso (Eells)', file: 'Psychotherapy Case Formulation - Tracy Eells.pdf' },
     ];

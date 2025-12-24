@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Zap, Save, Loader2, Bot, User, FileText, RefreshCw, Mic, MicOff, Calendar, ListChecks, AlertTriangle, Book } from 'lucide-react';
-import { getCoPilotSuggestion, summarizeChatToSoap, generateSessionScript, consultCoreLibrary } from '../lib/gemini';
+import { Send, Zap, Save, Loader2, Bot, User, FileText, RefreshCw, Mic, MicOff, Calendar, ListChecks, AlertTriangle, Book, Activity } from 'lucide-react';
+import { getCoPilotSuggestion, summarizeChatToSoap, generateSessionScript, consultCoreLibrary, generatePostSessionAnalysis, monitorActiveProcesses } from '../lib/gemini';
 import { generateSOAPPreview } from '../lib/soap-preview';
 import { usePatients } from '../context/PatientContext';
 
@@ -24,6 +24,9 @@ export const CoPilotChat: React.FC<CoPilotChatProps> = ({ onSessionEnd }) => {
     const [soapPreview, setSOAPPreview] = useState<any>(null);
     const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
     const [lastPreviewCount, setLastPreviewCount] = useState(0);
+
+    // Radar PBT (Live)
+    const [activeProcesses, setActiveProcesses] = useState<any[]>([]);
 
     // Voice recording states
     const [isRecording, setIsRecording] = useState(false);
@@ -271,10 +274,20 @@ export const CoPilotChat: React.FC<CoPilotChatProps> = ({ onSessionEnd }) => {
 
         try {
             const context = messages.slice(-5).map(m => `${m.role === 'user' ? 'Terapeuta' : 'Supervisor'}: ${m.text}`).join('\n');
-            const suggestion = await getCoPilotSuggestion(userMsg.text, context, currentPatient);
+
+            // Run Copilot + Live PBT Radar in parallel
+            const [suggestion, radarData] = await Promise.all([
+                getCoPilotSuggestion(userMsg.text, context, currentPatient),
+                monitorActiveProcesses(userMsg.text) // Analyze just the latest input or short context
+            ]);
 
             const aiMsg: Message = { id: crypto.randomUUID(), role: 'ai', text: suggestion, timestamp: new Date() };
             setMessages(prev => [...prev, aiMsg]);
+
+            // Update Radar UI
+            if (radarData?.active_nodes) {
+                setActiveProcesses(radarData.active_nodes);
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -289,12 +302,20 @@ export const CoPilotChat: React.FC<CoPilotChatProps> = ({ onSessionEnd }) => {
         setIsFinalizing(true);
         try {
             const fullHistory = messages.map(m => `[${m.timestamp.toLocaleTimeString()}] ${m.role === 'user' ? 'TERAPEUTA (Relato/Nota)' : 'CO-PILOTO (Sugestão)'}: ${m.text}`).join('\n');
-            const analysisResult = await summarizeChatToSoap(fullHistory);
+            const currentPBT = currentPatient?.clinicalRecords?.caseFormulation?.pbtData || { nodes: [], edges: [] };
+            const currentPlan = currentPatient?.clinicalRecords?.treatmentPlan || {};
+            const currentFormulation = currentPatient?.clinicalRecords?.caseFormulation || {};
+
+            // 1. Run Analysis
+            const [analysisResult, postSessionAnalysis] = await Promise.all([
+                summarizeChatToSoap(fullHistory),
+                generatePostSessionAnalysis(fullHistory, currentPBT, currentPlan, currentFormulation)
+            ]);
 
             if (currentPatient) {
                 const sessionId = crypto.randomUUID();
 
-                // Generate automatic prontuário record
+                // 2. Generate Prontuario Record Logic (Simplified Import)
                 let prontuarioRecord = null;
                 try {
                     const { generateSessionRecord } = await import('../lib/gemini');
@@ -303,49 +324,58 @@ export const CoPilotChat: React.FC<CoPilotChatProps> = ({ onSessionEnd }) => {
                         notes: fullHistory,
                         patientName: currentPatient.name
                     });
-                    console.log("📋 Ficha de Evolução gerada automaticamente!");
-                } catch (err) {
-                    console.error("Erro ao gerar ficha automática:", err);
-                }
+                } catch (err) { console.error(err); }
 
+                // 3. New Session Object
                 const newSession = {
                     id: sessionId,
                     date: new Date().toISOString(),
                     notes: "Sessão assistida por Co-Piloto.\n\n" + fullHistory,
                     soap: analysisResult.soap,
-                    pbtNetwork: analysisResult.pbt_network,
+                    pbtNetwork: postSessionAnalysis?.pbt_update?.new_struct?.nodes
+                        ? postSessionAnalysis.pbt_update.new_struct
+                        : (analysisResult.pbt_network || currentPBT),
                     adaptation: analysisResult.adaptacao
                 };
 
-                // Save session + prontuário record
-                const updatedProntuarioRecords = {
-                    ...(currentPatient.clinicalRecords.prontuarioRecords || {}),
-                    ...(prontuarioRecord ? {
-                        [sessionId]: {
-                            ...prontuarioRecord,
-                            sessionDate: new Date().toISOString(),
-                            consultationType: 'presencial' as const,
-                            updatedAt: new Date().toISOString()
-                        }
-                    } : {})
-                };
+                // 4. Update Patient
+                const updatedPatient = { ...currentPatient };
+                updatedPatient.clinicalRecords.sessions = [newSession, ...updatedPatient.clinicalRecords.sessions];
 
-                updatePatient({
-                    ...currentPatient,
-                    clinicalRecords: {
-                        ...currentPatient.clinicalRecords,
-                        sessions: [newSession, ...currentPatient.clinicalRecords.sessions],
-                        prontuarioRecords: updatedProntuarioRecords
-                    }
-                });
+                // Add prontuario record
+                if (prontuarioRecord) {
+                    updatedPatient.clinicalRecords.prontuarioRecords = {
+                        ...(updatedPatient.clinicalRecords.prontuarioRecords || {}),
+                        [sessionId]: { ...prontuarioRecord, sessionDate: new Date().toISOString(), updatedAt: new Date().toISOString(), consultationType: 'presencial' }
+                    };
+                }
+
+                // Update PBT if changed
+                if (postSessionAnalysis?.pbt_update?.new_struct?.nodes?.length > 0) {
+                    updatedPatient.clinicalRecords.caseFormulation.pbtData = postSessionAnalysis.pbt_update.new_struct;
+                }
+
+                updatePatient(updatedPatient);
+                onSessionEnd();
+
+                // 5. Feedback Report
+                let msg = `✅ Sessão encerrada!\n\n`;
+                if (postSessionAnalysis) {
+                    msg += `🧠 INTELIGÊNCIA CLÍNICA:\n\n`;
+                    msg += `1️⃣ PBT: ${postSessionAnalysis.pbt_update?.status === 'mudou' ? 'ATUALIZADA' : 'MANTIDA'}\n`;
+                    if (postSessionAnalysis.pbt_update?.description) msg += `   "${postSessionAnalysis.pbt_update.description}"\n`;
+
+                    msg += `\n2️⃣ PLANO: ${postSessionAnalysis.plan_review?.status === 'ajustar' ? '⚠️ SUGESTÃO DE AJUSTE' : '✅ MANTIDO'}\n`;
+                    if (postSessionAnalysis.plan_review?.suggestions) msg += `   Sugestão: ${postSessionAnalysis.plan_review.suggestions.join('; ')}\n`;
+
+                    msg += `\n3️⃣ DIAGNÓSTICO: ${postSessionAnalysis.formulation_check?.status || 'Ok'}\n`;
+                    if (postSessionAnalysis.formulation_check?.insight) msg += `   Obs: ${postSessionAnalysis.formulation_check.insight}`;
+                }
+                alert(msg);
             }
-
-            alert("Sessão salva com sucesso! Ficha de Evolução gerada automaticamente.");
-            onSessionEnd();
-
         } catch (error) {
-            console.error(error);
-            alert("Erro ao gerar prontuário. Tente novamente.");
+            console.error("Erro ao finalizar:", error);
+            alert("Erro ao processar encerramento.");
         } finally {
             setIsFinalizing(false);
         }
@@ -365,6 +395,21 @@ export const CoPilotChat: React.FC<CoPilotChatProps> = ({ onSessionEnd }) => {
                             <p className="text-xs text-gray-500">
                                 {sessionStartTime ? `Sessão iniciada às ${sessionStartTime.toLocaleTimeString('pt-BR')}` : 'Supervisão imediata'}
                             </p>
+                            {activeProcesses.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1 animate-in fade-in slide-in-from-top-1">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider self-center mr-1">Radar PBT:</span>
+                                    {activeProcesses.slice(0, 3).map((proc, idx) => (
+                                        <span key={idx} className={`text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 ${proc.status === 'rigido'
+                                                ? 'bg-red-50 text-red-700 border-red-200'
+                                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                            }`}>
+                                            {proc.status === 'rigido' ? <Activity className="w-3 h-3" /> : <div className="w-2 h-2 rounded-full bg-emerald-400" />}
+                                            {proc.label}
+                                        </span>
+                                    ))}
+                                    {activeProcesses.length > 3 && <span className="text-[10px] text-gray-400 self-center">+{activeProcesses.length - 3}</span>}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex gap-2">

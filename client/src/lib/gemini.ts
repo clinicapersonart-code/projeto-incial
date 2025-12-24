@@ -237,53 +237,61 @@ ${historyContext}
 // Função auxiliar para buscar técnicas do servidor RAG
 
 
-// === 1. CO-PILOTO "VISÃO DE REDE" (PBT + Socrático + Metáforas) ===
+// === 1. CO-PILOTO "HANK CIVILIZADO" (Cérebro PBE + Alma Humana) ===
 export const getCoPilotSuggestion = async (input: string, context: string, patient: any) => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
   if (!apiKey) throw new Error("Chave API não encontrada.");
 
   const ai = new GoogleGenAI({ apiKey });
 
-  // 1. AQUI ELE PEGA A IDENTIDADE PARA A METÁFORA
+  // Identidade para as metáforas sensoriais
   const identity = patient?.occupation || patient?.profisao || "a vida cotidiana";
 
   const prompt = `
-ATUE COMO: Supervisor Clínico em PBT (Terapia Baseada em Processos).
-MENTALIDADE: Sistêmica, Socrática e Criativa.
+ATUE COMO: "Hank Civilizado" (Uma persona terapêutica baseada em PBE, mas com prosa moderna).
+BASE CLÍNICA: Terapia Baseada em Processos (PBT) e Análise Funcional.
 
 DADOS DO PACIENTE:
-- Identidade: ${identity}
+- Identidade/Mundo: ${identity}
 - Contexto: ${context}
 FALA ATUAL: "${input}"
 
-SUA ANÁLISE INTERNA (O "SCAN" DA REDE PBT):
-Não olhe o sintoma isolado. Visualize a REDE DE PROCESSOS.
-1. Quais "Nós" acenderam? (Afeto, Cognição, Atenção, Self).
-2. Qual conexão está rígida? (Ex: "Sinto Ansiedade" -> "Devo Evitar").
+---
+SEU GUIA DE ESTILO (IDENTIDADE DO TOM):
+1. **Humano e Direto:** Fale com franqueza gentil. A verdade vem sem crueldade. Sem "cliniquês".
+2. **Humor Seco (Dose Certa):** Use para desarmar defesas, nunca para ridicularizar a dor.
+3. **Sem Floreios:** Frases curtas. Verbos fortes. Uma ideia por parágrafo.
+4. **Validação antes de Direção:** Espelhe o sentimento antes de sugerir mudança.
 
-SUA MISSÃO (A Intervenção Cirúrgica):
-Gere UMA fala curta (máx 3 linhas) escolhendo a melhor estratégia:
+COMO FAZER O PACIENTE SENTIR (A TÉCNICA):
+- **Traga para o corpo:** Pergunte onde pega, como vibra. A cabeça mente, o corpo denuncia.
+- **Metáfora Sensorial:** Use imagens do cotidiano ou da profissão dele (${identity}).
+  - *Ex:* "É como um alarme de incêndio disparando por uma torrada."
+- **Mecanismo, não Moral:** Explique como a mente funciona (evolução, hábito), tire a culpa.
 
-OPÇÃO A: 🕸️ QUESTIONAMENTO SOCRÁTICO (Descoberta Guiada):
-   - Faça a pergunta que mostre como um nó puxa o outro.
-   - Ex: "Você percebe como o nó do 'Medo' ativa automaticamente o 'Ficar em casa'? O que aconteceria se a gente só observasse essa conexão?"
+ESTRUTURA DE RESPOSTA OBRIGATÓRIA (MÁX 4 LINHAS):
+1. **Espelho/Validação:** Uma frase curta conectando com a dor.
+2. **O Mecanismo (PBT/PBE):** Explique o nó (Fusão, Evitação, Reforço) usando uma imagem sensorial/metáfora.
+3. **Ação:** Um passo concreto e minúsculo agora.
 
-OPÇÃO B: 🎭 METÁFORA DE IDENTIDADE (Insight Rápido):
-   - Use a profissão dele (${identity}) para explicar o sistema travado.
-   - Ex (Se Engenheiro): "Parece que o 'sistema de segurança' (Ansiedade) disparou o alarme sem ter fogo."
+O QUE EVITAR A TODO CUSTO:
+- Sarcasmo em momento vulnerável.
+- Clichês de psicólogo ("Como você se sente com isso?").
+- Palestras longas.
 
-OPÇÃO C: ⚡ INTERVENÇÃO DE PROCESSO (Defusão/Aceitação):
-   - Sugira algo prático para flexibilizar a rede.
-   - Ex: "Vamos tentar apenas notar esse pensamento como um evento passageiro, sem comprar ele?"
+SUA ANÁLISE INTERNA (RÁPIDA):
+- Qual o processo travado? (Evitação? Fusão?)
+- Qual a função? (Alívio imediato?)
+-> Traduza isso para o estilo "Hank Civilizado".
 
-RESPOSTA (Direta para o terapeuta):
+RESPOSTA (Direta para o terapeuta ler ou adaptar):
 `;
 
   try {
     const result = await ai.models.generateContent({
-      model: RATES.FAST, // Usa o modelo rápido (Flash)
+      model: RATES.FAST, // Gemini 2.0 Flash é ótimo para captar nuances de tom
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { temperature: 0.5 } // Temperatura média para criatividade na metáfora
+      config: { temperature: 0.6 } // Temperatura média-alta para garantir a criatividade da "prosa moderna"
     });
 
     return result.text || "Sugestão indisponível.";
@@ -394,6 +402,121 @@ Crie o roteiro da sessão de hoje (Agenda da Sessão) baseada na continuidade e 
   }
 };
 
+// === 7. ANÁLISE PÓS-SESSÃO (EVOLUÇÃO TOTAL: PBT, Plano, Conceituação) ===
+export const generatePostSessionAnalysis = async (
+  sessionChat: string,
+  currentPBT: any,
+  currentPlan: any,
+  currentFormulation: any
+) => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+  if (!apiKey) throw new Error("Chave API não encontrada.");
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  // Transforma os objetos em texto para a IA ler
+  const pbtString = JSON.stringify(currentPBT || {});
+  const planString = JSON.stringify(currentPlan || {});
+  const formulationString = JSON.stringify(currentFormulation || {});
+
+  const prompt = `
+ATUE COMO: Supervisor Clínico Sênior (PBT e PBE).
+TAREFA: Realizar a "Evolução do Caso" após a sessão de hoje.
+
+INPUTS:
+- CHAT DA SESSÃO: ${sessionChat}
+- REDE PBT ANTERIOR: ${pbtString}
+- PLANO ATUAL: ${planString}
+- CONCEITUAÇÃO ATUAL: ${formulationString}
+
+SUA MISSÃO (RACIOCÍNIO CLÍNICO):
+1. **Rede PBT:** A sessão de hoje mudou a rede? (Algum nó enfraqueceu? Alguma conexão nova surgiu?)
+2. **Plano de Tratamento:** O plano atual ainda faz sentido ou precisa de ajuste de rota? (Ex: O paciente travou na exposição? Surgiu nova demanda?)
+3. **Conceituação:** Alguma hipótese diagnóstica caiu?
+
+SAÍDA ESPERADA (JSON):
+{
+  "pbt_update": {
+    "status": "mudou" | "mantido",
+    "description": "Explicação curta da mudança na rede...",
+    "new_struct": { "nodes": [], "edges": [] }, 
+    "suggested_nodes_add": ["Novo Nó 1", "Novo Nó 2"],
+    "suggested_edges_remove": ["Conexão X -> Y"]
+  },
+  "plan_review": {
+    "status": "manter" | "ajustar",
+    "reason": "Por que mudar?",
+    "suggestions": [
+      "Adicionar sessão de psicoeducação sobre X",
+      "Reduzir intensidade da exposição"
+    ]
+  },
+  "formulation_check": {
+    "status": "confirmada" | "revisar",
+    "insight": "Ex: Paciente apresentou traços de TDAH não notados antes."
+  }
+}
+*IMPORTANTE: Se "new_struct" for fornecido, deve conter a rede completa atualizada (nodes e edges). Se for muito complexo gerar tudo, foque em descrever as mudanças.*
+`;
+
+  try {
+    const result = await ai.models.generateContent({
+      model: RATES.DEEP, // Usa o modelo Deep para essa análise complexa
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.2
+      }
+    });
+
+    return JSON.parse(result.text || '{}');
+  } catch (error) {
+    console.error("Post Session Error:", error);
+    return null;
+  }
+};
+
+// === 8. RADAR DE PROCESSOS (AO VIVO) ===
+export const monitorActiveProcesses = async (lastMessages: string) => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+  if (!apiKey) throw new Error("Chave API não encontrada.");
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  const prompt = `
+ATUE COMO: Rastreador de Processos PBT em Tempo Real.
+CONTEXTO: Trecho recente da sessão.
+
+TEXTO: "${lastMessages}"
+
+TAREFA:
+Liste apenas os PROCESSOS (Nós) que estão ativos/quentes nestas falas exatas.
+Classifique se estão "Rígidos" (Problemáticos) ou "Flexíveis" (Saudáveis).
+
+JSON:
+{
+  "active_nodes": [
+    { "label": "Ex: Pensamento Catastrófico", "status": "rigido", "intensity": "alta" },
+    { "label": "Ex: Contato com Valores", "status": "flexivel", "intensity": "media" }
+  ]
+}
+`;
+
+  try {
+    const result = await ai.models.generateContent({
+      model: RATES.FAST, // Flash para ser instantâneo
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.1
+      }
+    });
+
+    return JSON.parse(result.text || '{ "active_nodes": [] }');
+  } catch (error) {
+    return { active_nodes: [] };
+  }
+};
 // === 3. PLANEJAMENTO COM BIBLIOTECA ===
 export const generatePlanFromMaterial = async (patientData: string, fileSource: { type: 'library' | 'upload', info: string }) => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;

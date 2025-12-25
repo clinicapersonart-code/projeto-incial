@@ -19,9 +19,30 @@ body {
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   @apply bg-gray-100;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-gray-300 rounded-full hover:bg-gray-400;
+}
+
+/* Bidirectional Arrow Animation - SVG Stroke Animation */
+.react-flow__edge-bidirectional path {
+  animation: bidirectional-flow 1.5s linear infinite;
+}
+
+@keyframes bidirectional-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dashoffset: 12;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
 }

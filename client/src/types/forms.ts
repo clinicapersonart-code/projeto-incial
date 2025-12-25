@@ -1,6 +1,6 @@
 export interface Assessment {
     id: string;
-    type: 'GAD-7' | 'PHQ-9' | 'Lapsos de Memória' | 'Outro';
+    type: string;
     date: string;
     score: number;
     interpretation: string;

@@ -13,9 +13,10 @@ interface Message {
 
 interface CoPilotChatProps {
     onSessionEnd: () => void;
+    onAnalysisUpdate?: (analysis: { active_nodes?: any[] }) => void;
 }
 
-export const CoPilotChat: React.FC<CoPilotChatProps> = ({ onSessionEnd }) => {
+export const CoPilotChat: React.FC<CoPilotChatProps> = ({ onSessionEnd, onAnalysisUpdate }) => {
     const { currentPatient, updatePatient } = usePatients();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
@@ -287,6 +288,9 @@ export const CoPilotChat: React.FC<CoPilotChatProps> = ({ onSessionEnd }) => {
             // Update Radar UI
             if (radarData?.active_nodes) {
                 setActiveProcesses(radarData.active_nodes);
+                if (onAnalysisUpdate) {
+                    onAnalysisUpdate({ active_nodes: radarData.active_nodes });
+                }
             }
         } catch (error) {
             console.error(error);
@@ -400,8 +404,8 @@ export const CoPilotChat: React.FC<CoPilotChatProps> = ({ onSessionEnd }) => {
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider self-center mr-1">Radar PBT:</span>
                                     {activeProcesses.slice(0, 3).map((proc, idx) => (
                                         <span key={idx} className={`text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 ${proc.status === 'rigido'
-                                                ? 'bg-red-50 text-red-700 border-red-200'
-                                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                            ? 'bg-red-50 text-red-700 border-red-200'
+                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                             }`}>
                                             {proc.status === 'rigido' ? <Activity className="w-3 h-3" /> : <div className="w-2 h-2 rounded-full bg-emerald-400" />}
                                             {proc.label}

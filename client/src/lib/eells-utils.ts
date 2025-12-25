@@ -178,6 +178,61 @@ export function getNextRecommendedAction(patient: Patient): string {
 }
 
 /**
+ * Retorna a próxima ação recomendada com a aba alvo para navegação
+ */
+export function getNextRecommendedActionWithTab(patient: Patient): { action: string; targetTab: string | null } {
+    const progress = calculateEellsProgress(patient);
+
+    if (progress.assessment < 100) {
+        if (!patient.clinicalRecords.anamnesis.content) {
+            return { action: 'Preencher Anamnese estruturada', targetTab: 'anamnesis' };
+        }
+        if (patient.clinicalRecords.assessments.length === 0) {
+            return { action: 'Aplicar avaliação inicial (GAD-7, PHQ-9, etc)', targetTab: 'forms' };
+        }
+    }
+
+    if (progress.problemList < 100) {
+        return { action: 'Criar Lista de Problemas a partir das sessões', targetTab: 'eells' };
+    }
+
+    if (progress.mechanisms < 100) {
+        if (!patient.clinicalRecords.sessions.some(s => s.pbtNetwork?.nodes?.length > 0)) {
+            return { action: 'Gerar Rede PBT (Ir para Anamnese e usar IA)', targetTab: 'anamnesis' };
+        }
+        return { action: 'Identificar Crenças Nucleares', targetTab: 'network' };
+    }
+
+    if (progress.formulation < 100) {
+        return { action: 'Completar Formulação de Caso (Eells)', targetTab: 'formulation' };
+    }
+
+    if (progress.treatment < 100) {
+        const eellsData = (patient as any).eellsData;
+        if (!eellsData?.treatmentPlan?.goals?.length) {
+            return { action: 'Definir Metas Terapêuticas', targetTab: 'eells' };
+        }
+        if (!eellsData?.treatmentPlan?.interventions?.length) {
+            return { action: 'Planejar Intervenções', targetTab: 'eells' };
+        }
+        return { action: 'Executar intervenções e monitorar progresso', targetTab: 'copilot' };
+    }
+
+    if (progress.monitoring < 100) {
+        if (patient.clinicalRecords.sessions.length < 3) {
+            return { action: 'Continuar sessões (mínimo 3 para monitoramento)', targetTab: 'copilot' };
+        }
+        return { action: 'Reavaliar com instrumentos (GAD-7, PHQ-9)', targetTab: 'forms' };
+    }
+
+    if (progress.discharge < 100) {
+        return { action: 'Preparar critérios de alta e plano de prevenção', targetTab: 'evolution' };
+    }
+
+    return { action: 'Processo completo! Considerar alta terapêutica', targetTab: null };
+}
+
+/**
  * Verifica se o paciente está pronto para alta
  */
 export function checkDischargeReadiness(patient: Patient): boolean {

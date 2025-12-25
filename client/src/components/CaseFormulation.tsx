@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { usePatients } from '../context/PatientContext';
 import { EellsFormulation } from '../types/eells';
-import { Save, Wand2, Loader2, FileText } from 'lucide-react';
+import { Save, Wand2, Loader2, FileText, BrainCircuit, ArrowRight } from 'lucide-react';
+import { generatePBTEdgesFromFormulation } from '../lib/gemini';
+import { useNavigation } from '../context/NavigationContext';
+import { aggregateAnamnesisData } from '../lib/anamnesis-utils';
 
 export const CaseFormulation: React.FC = () => {
     const { currentPatient, updatePatient } = usePatients();
@@ -13,7 +16,9 @@ export const CaseFormulation: React.FC = () => {
         narrative: ''
     });
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isGeneratingEdges, setIsGeneratingEdges] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const { navigateTo } = useNavigation();
 
     useEffect(() => {
         if (currentPatient?.clinicalRecords.caseFormulation.eells) {
@@ -66,8 +71,8 @@ export const CaseFormulation: React.FC = () => {
         setIsGenerating(true);
 
         try {
-            // Get data for Stage 1 Kick-off
-            const anamnesisText = currentPatient.clinicalRecords.anamnesis.content || "Sem anamnese registrada.";
+            // Get aggregated data from all anamneses (Structured + EBP)
+            const anamnesisText = aggregateAnamnesisData(currentPatient);
             const assessments = currentPatient.clinicalRecords.assessments || [];
 
             // Import dynamically to avoid circular deps if any, or just direct call
@@ -100,6 +105,45 @@ export const CaseFormulation: React.FC = () => {
         }
     };
 
+    // Gerar Conexões PBT a partir da Conceituação
+    const handleGeneratePBTEdges = async () => {
+        if (!currentPatient) return;
+
+        const currentSession = currentPatient.clinicalRecords.sessions[0];
+        const existingNodes = currentSession?.pbtNetwork?.nodes || [];
+        const existingEdges = currentSession?.pbtNetwork?.edges || [];
+
+        if (existingNodes.length < 2) {
+            alert('Você precisa ter pelo menos 2 processos (nós) na Rede PBT primeiro.\n\nDica: Vá para Anamnese e clique em "Gerar Processos PBT".');
+            return;
+        }
+
+        if (!confirm(`Gerar Conexões (Setas) entre os ${existingNodes.length} processos existentes?`)) return;
+
+        setIsGeneratingEdges(true);
+        try {
+            const result = await generatePBTEdgesFromFormulation(formulation, existingNodes, existingEdges);
+
+            // Merge with existing edges
+            const mergedEdges = [...existingEdges, ...result.edges];
+
+            // Update patient
+            const updatedPatient = JSON.parse(JSON.stringify(currentPatient));
+            updatedPatient.clinicalRecords.sessions[0].pbtNetwork = {
+                nodes: existingNodes,
+                edges: mergedEdges
+            };
+
+            updatePatient(updatedPatient);
+            alert(`✅ ${result.edges.length} conexões geradas! Vá para "Rede PBT" para visualizar.`);
+        } catch (error) {
+            console.error('Erro ao gerar conexões PBT:', error);
+            alert('Erro ao gerar conexões. Tente novamente.');
+        } finally {
+            setIsGeneratingEdges(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between">
@@ -115,6 +159,14 @@ export const CaseFormulation: React.FC = () => {
                     >
                         {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                         Auto-Preencher com IA
+                    </button>
+                    <button
+                        onClick={handleGeneratePBTEdges}
+                        disabled={isGeneratingEdges}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-lg hover:from-cyan-700 hover:to-teal-700 transition-colors text-sm font-medium shadow-md"
+                    >
+                        {isGeneratingEdges ? <Loader2 className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
+                        {isGeneratingEdges ? 'Gerando...' : '🕸️ Gerar Conexões PBT'}
                     </button>
                     <button
                         onClick={handleSave}
@@ -254,6 +306,38 @@ export const CaseFormulation: React.FC = () => {
                 </div>
 
             </div>
+
+            {/* Guidance for Next Steps */}
+            <div className="bg-gradient-to-br from-cyan-50 to-teal-50 border border-cyan-200 rounded-2xl p-6 animate-in slide-in-from-bottom-8 duration-700 shadow-lg">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div className="space-y-2">
+                        <h4 className="text-lg font-bold text-cyan-900 flex items-center gap-2">
+                            🧠 Conecte os Pontos
+                        </h4>
+                        <p className="text-sm text-cyan-800/80 max-w-lg">
+                            Visualize e ajuste as conexões da rede de processos.
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <button
+                            onClick={handleGeneratePBTEdges}
+                            disabled={isGeneratingEdges}
+                            className="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white px-5 py-3 rounded-xl font-semibold transition-all shadow-md disabled:opacity-50"
+                        >
+                            {isGeneratingEdges ? <Loader2 className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
+                            {isGeneratingEdges ? 'Gerando...' : '🕸️ Gerar Conexões'}
+                        </button>
+                        <button
+                            onClick={() => navigateTo('network')}
+                            className="flex items-center justify-center gap-2 bg-white hover:bg-cyan-50 text-cyan-700 border-2 border-cyan-300 px-5 py-3 rounded-xl font-semibold transition-all shadow-sm"
+                        >
+                            Ver Rede PBT
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     );
 };

@@ -36,7 +36,10 @@ import {
   Edit3,
   LayoutGrid,
   EyeOff,
-  Map
+  Map,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Connection, addEdge, useReactFlow } from 'reactflow';
 
@@ -83,6 +86,7 @@ const CustomPBTNode = ({ data }: NodeProps) => {
   // Rule: explicitly flagged OR belongs to moderator category
   const isRounded = data.isModerator || isModeratorCategory(data.category);
   const roundedClass = isRounded ? 'rounded-2xl' : 'rounded-none';
+  const showCategoryBadge = data.showCategoryBadge;
 
   return (
     <div
@@ -91,18 +95,78 @@ const CustomPBTNode = ({ data }: NodeProps) => {
         filter: isTarget ? `drop-shadow(0 0 15px #facc15)` : `drop-shadow(0 0 10px ${categoryStyle.color}20)`
       }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-slate-500 !w-2 !h-2" />
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="top"
+        isConnectable={true}
+        className="!w-[90%] !h-5 !bg-transparent !opacity-100 !-top-4 !border-none !rounded z-50 cursor-crosshair"
+      />
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top-target"
+        isConnectable={true}
+        className="!w-[90%] !h-5 !bg-transparent !opacity-100 !-top-4 !border-none !rounded z-50 cursor-crosshair"
+        style={{ left: '5%' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        isConnectable={true}
+        className="!w-5 !h-[90%] !bg-transparent !opacity-100 !-right-4 !border-none !rounded z-50 cursor-crosshair"
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="right-target"
+        isConnectable={true}
+        className="!w-5 !h-[90%] !bg-transparent !opacity-100 !-right-4 !border-none !rounded z-50 cursor-crosshair"
+        style={{ top: '5%' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="left"
+        isConnectable={true}
+        className="!w-5 !h-[90%] !bg-transparent !opacity-100 !-left-4 !border-none !rounded z-50 cursor-crosshair"
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left-target"
+        isConnectable={true}
+        className="!w-5 !h-[90%] !bg-transparent !opacity-100 !-left-4 !border-none !rounded z-50 cursor-crosshair"
+        style={{ top: '5%' }}
+      />
+
+      {/* Category Badge - Shows when region labels are hidden */}
+      {
+        showCategoryBadge && (
+          <div
+            className="absolute -top-6 left-1/2 -translate-x-1/2 z-10 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider whitespace-nowrap border"
+            style={{
+              backgroundColor: `${categoryStyle.color}20`,
+              borderColor: `${categoryStyle.color}60`,
+              color: categoryStyle.color
+            }}
+          >
+            {categoryStyle.label}
+          </div>
+        )
+      }
 
       {/* Target Badge */}
-      {isTarget && (
-        <div className="absolute -top-3 -right-3 z-10 bg-yellow-500 text-slate-900 rounded-full p-1 shadow-lg shadow-yellow-500/20 border border-yellow-300 animate-pulse">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-          </svg>
-        </div>
-      )}
-
-
+      {
+        isTarget && (
+          <div className="absolute -top-3 -right-3 z-10 bg-yellow-500 text-slate-900 rounded-full p-1 shadow-lg shadow-yellow-500/20 border border-yellow-300 animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+            </svg>
+          </div>
+        )
+      }
 
       {/* Corpo do Nó */}
       <div
@@ -124,13 +188,36 @@ const CustomPBTNode = ({ data }: NodeProps) => {
           </div>
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-500 !w-2 !h-2" />
-    </div>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
+        isConnectable={true}
+        className="!w-[90%] !h-5 !bg-transparent !opacity-100 !-bottom-4 !border-none !rounded z-50 cursor-crosshair"
+      />
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="bottom-target"
+        isConnectable={true}
+        className="!w-[90%] !h-5 !bg-transparent !opacity-100 !-bottom-4 !border-none !rounded z-50 cursor-crosshair"
+        style={{ left: '5%' }}
+      />
+    </div >
   );
 };
 
 // Region Node Component moved up to fix hoisting
 const RegionNode = ({ data }: NodeProps) => {
+  // When hideLabels is true, show only a minimal transparent container
+  if (data.hideLabels) {
+    return (
+      <div className="w-full h-full bg-transparent rounded-xl">
+        {/* Empty container - just maintains spacing for child nodes */}
+      </div>
+    );
+  }
+
   return (
     <div className={`w-full h-full border-2 border-dashed ${data.isAlternate ? 'border-slate-600 bg-slate-800/30' : 'border-slate-700/50 bg-slate-900/20'} rounded-xl flex items-end justify-center pb-4 transition-colors`}>
       <div className="text-xl font-bold uppercase tracking-[0.2em] text-slate-600 select-none pointer-events-none">
@@ -343,6 +430,8 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
   const [editForm, setEditForm] = React.useState<any>(null);
   // Toggle region labels visibility
   const [showRegionLabels, setShowRegionLabels] = React.useState(true);
+  // Toggle legend/tutorial visibility
+  const [showLegend, setShowLegend] = React.useState(false);
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
     // ... existing memo logic ...
@@ -364,48 +453,68 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
     const flowEdges: Edge[] = initialDataEdges.map((e, i) => {
       const isBidirectional = (e as any).bidirectional;
       const weight = (e.weight || 'moderado').toLowerCase();
+      const reverseWeight = ((e as any).reverseWeight || weight).toLowerCase();
       // Default to 'positive' if not specified
       const polarity = (e as any).polarity || 'positive';
+      const reversePolarity = (e as any).reversePolarity || polarity;
 
-      let arrowSize = 20;
-      let strokeWidth = 1.5;
+      // Arrow head size varies by weight - line is constant
+      // Line is neutral to allow mixed directional weights
+      const strokeWidth = 2;
 
-      if (weight === 'fraco') {
-        arrowSize = 10;
-        strokeWidth = 1;
-      } else if (weight === 'forte') {
-        arrowSize = 45;
-        strokeWidth = 3.5;
-      }
+      // Helper para configurar marcador baseado em polaridade e peso
+      const getMarkerConfig = (pol: string, w: string) => {
+        let size = 15; // Moderate (Default - 15px)
+        if (w === 'fraco') size = 11; // 11px
+        if (w === 'forte') size = 18; // 18px
 
-      // Marker Config based on Polarity
-      const markerType = polarity === 'negative' ? 'arrow-closed-hollow' : MarkerType.ArrowClosed;
-
-      // For standard MarkerType, we pass config object. For custom ID 'arrow-closed-hollow', we just pass the ID string if using 'type' or use 'markerEndId'?
-      // ReactFlow 'markerEnd' can be string (ID) or object.
-      // If we want a custom marker we defined in definitions, we use the ID string.
-      // However, 'MarkerType.ArrowClosed' is an enum.
-
-      const markerConfig = polarity === 'negative'
-        ? 'arrow-closed-hollow' // Refers to the definition we will add
-        : {
+        if (pol === 'negative') {
+          const sizeMap: Record<string, string> = {
+            'fraco': 'arrow-hollow-fraco',
+            'moderado': 'arrow-hollow-moderado',
+            'forte': 'arrow-hollow-forte'
+          };
+          return sizeMap[w] || 'arrow-hollow-moderado';
+        }
+        return {
           type: MarkerType.ArrowClosed,
-          color: '#475569',
-          width: arrowSize,
-          height: arrowSize,
+          color: '#64748b',
+          width: size,
+          height: size,
         };
+      };
+
+      const markerEnd = getMarkerConfig(polarity, weight);
+      const markerStart = isBidirectional ? getMarkerConfig(reversePolarity, reverseWeight) : undefined;
 
       return {
         id: `e${i}`,
         source: e.source,
         target: e.target,
         label: e.relation,
-        animated: true,
-        style: { stroke: '#475569', strokeWidth: strokeWidth },
+        style: {
+          stroke: '#475569',
+          strokeWidth: strokeWidth,
+          strokeDasharray: isBidirectional ? '8, 4' : undefined,
+        },
+        // For bidirectional: remove default animation, we'll use CSS
+        animated: !isBidirectional,
+        className: isBidirectional ? 'react-flow__edge-bidirectional' : '',
         labelStyle: { fill: '#94a3b8', fontSize: 9, fontWeight: 500 },
-        markerEnd: markerConfig,
-        markerStart: isBidirectional ? markerConfig : undefined,
-        data: { weight: weight, relation: e.relation, bidirectional: isBidirectional, polarity: polarity }
+        labelBgStyle: { fill: '#1e293b', fillOpacity: 0.9 },
+        labelBgPadding: [4, 6] as [number, number],
+        labelBgBorderRadius: 4,
+        markerEnd: markerEnd,
+        markerStart: markerStart,
+
+        data: {
+          weight: weight,
+          reverseWeight: reverseWeight,
+          relation: e.relation,
+          bidirectional: isBidirectional,
+          polarity: polarity,
+          reversePolarity: reversePolarity
+        }
       };
     });
 
@@ -471,6 +580,7 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
       target: e.target,
       relation: e.data?.relation || e.label || 'Influência',
       weight: e.data?.weight || 'moderado',
+      reverseWeight: e.data?.reverseWeight || e.data?.weight || 'moderado',
       bidirectional: e.data?.bidirectional || false,
       polarity: e.data?.polarity || 'positive',
       reversePolarity: e.data?.reversePolarity || 'positive'
@@ -508,39 +618,58 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
           let updatedNodes = [...currentNodes];
 
           for (const sibling of siblings) {
-            const xOverlap = Math.abs(draggedNode.position.x - sibling.position.x) < NODE_WIDTH + BUFFER;
-            const yOverlap = Math.abs(draggedNode.position.y - sibling.position.y) < NODE_HEIGHT + BUFFER;
-
-            if (xOverlap && yOverlap) {
-              needsUpdate = true;
-              // Push overlapping sibling away
-              const pushX = draggedNode.position.x < sibling.position.x ? 30 : -30;
-              const pushY = draggedNode.position.y < sibling.position.y ? 30 : -30;
-
-              updatedNodes = updatedNodes.map(n => {
-                if (n.id === sibling.id) {
-                  return {
-                    ...n,
-                    position: {
-                      x: Math.max(10, n.position.x + pushX),
-                      y: Math.max(10, n.position.y + pushY)
-                    }
-                  };
-                }
-                return n;
-              });
-            }
+            // Collision logic would go here
           }
-
-          if (needsUpdate) {
-            emitUpdate(updatedNodes, edges);
-            return updatedNodes;
-          }
-          return currentNodes;
+          return updatedNodes;
         });
-      }, 50);
+      }, 0);
+
+      // Snapshot for history after drag
+      setTimeout(() => takeSnapshot({ nodes, edges }), 100);
     }
-  }, [onNodesChange, setNodes, emitUpdate, edges]);
+  }, [onNodesChange, setNodes, nodes, edges, takeSnapshot]);
+
+
+  // --- CONNECTION LOGIC (SMART DROPS) ---
+  const connectionStartParams = React.useRef<{ nodeId: string | null; handleId: string | null; handleType: string | null }>({ nodeId: null, handleId: null, handleType: null });
+
+  const onConnectStart = useCallback((_: any, params: { nodeId: string | null; handleId: string | null; handleType: string | null }) => {
+    connectionStartParams.current = params;
+  }, []);
+
+  const onConnectEnd = useCallback((event: any) => {
+    const target = event.target as Element;
+    // Check if we dropped on a node (look for pbtNode class or parent)
+    const nodeElement = target.closest('.react-flow__node-pbtNode');
+
+    if (nodeElement && connectionStartParams.current.nodeId) {
+      const targetId = nodeElement.getAttribute('data-id');
+      const sourceId = connectionStartParams.current.nodeId;
+
+      if (targetId && sourceId && targetId !== sourceId) {
+        // Manually trigger a connection!
+        // We know source/target nodes, we can let handleConnectWrapper figure out the handles
+
+        // Prevent duplicate if ReactFlow already handled it via handle
+        // We can check if an edge was just added, but simpler is to rely on addEdge dedupe or just fire it.
+        // Actually, onConnect fires BEFORE onConnectEnd if successful. 
+        // So we might get a double fire if the user hit a handle. 
+        // We can check if the target IS a handle.
+        if (target.classList.contains('react-flow__handle')) return;
+
+        // If not a handle, but IS a node, force connect
+        const params = {
+          source: sourceId,
+          sourceHandle: connectionStartParams.current.handleId, // Use the handle they dragged from
+          target: targetId,
+          targetHandle: null // Let wrapper calculate intelligent target handle
+        };
+        handleConnectWrapper(params as any);
+      }
+    }
+  }, [nodes]); // Add nodes dependency if needed, though we use ref for start params
+
+
 
   // --- HANDLERS ---
 
@@ -550,24 +679,97 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
 
   // WRAP onConnect properly
   const handleConnectWrapper = useCallback((params: Connection) => {
-    takeSnapshot({ nodes, edges }); // SNAPSHOT BEFORE CHANGE
+    // Smart Connect Logic: Determine best handles if just dropped casually
+    let sourceHandle = params.sourceHandle;
+    let targetHandle = params.targetHandle;
+
+    if (nodes) {
+      const sourceNode = nodes.find(n => n.id === params.source);
+      const targetNode = nodes.find(n => n.id === params.target);
+
+      if (sourceNode && targetNode && sourceNode.position && targetNode.position) {
+        const dx = targetNode.position.x - sourceNode.position.x;
+        const dy = targetNode.position.y - sourceNode.position.y;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+
+        // Logic: Connect "Faces"
+        if (absDx > absDy) {
+          // Horizontal containment dominates
+          if (dx > 0) {
+            // Target is to the RIGHT
+            sourceHandle = 'right';
+            targetHandle = 'left';
+          } else {
+            // Target is to the LEFT
+            sourceHandle = 'left';
+            targetHandle = 'right';
+          }
+        } else {
+          // Vertical containment dominates
+          if (dy > 0) {
+            // Target is BELOW
+            sourceHandle = 'bottom';
+            targetHandle = 'top';
+          } else {
+            // Target is ABOVE
+            sourceHandle = 'top';
+            targetHandle = 'bottom';
+          }
+        }
+      }
+    }
 
     const newEdgeData = {
       ...params,
+      sourceHandle, // Override
+      targetHandle, // Override
+      id: `edge-${Date.now()}`, // Generate unique ID
       type: 'default',
       animated: true,
-      label: 'Influencia',
-      style: { stroke: '#475569', strokeWidth: 1.5 },
-      data: { weight: 'moderado', relation: 'Influencia', bidirectional: false, polarity: 'positive' },
-      markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20, color: '#475569' }
+      label: '',
+      style: { stroke: '#475569', strokeWidth: 2 },
+      data: { weight: 'moderado', relation: '', bidirectional: false, polarity: 'positive' },
+      markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: '#64748b' }
     };
 
-    setEdges((eds) => {
-      const newEdges = addEdge(newEdgeData, eds);
-      emitUpdate(nodes, newEdges);
-      return newEdges;
-    });
-  }, [setEdges, nodes, emitUpdate, takeSnapshot, edges]);
+    const newEdges = addEdge(newEdgeData, edges);
+    takeSnapshot({ nodes, edges: newEdges });
+
+    // Auto-open modal to ask about bidirectional
+    setTimeout(() => {
+      const createdEdge = newEdges.find(e => e.id === newEdgeData.id);
+      if (createdEdge) {
+        setSelectedItem({ type: 'edge', data: createdEdge });
+        setEditForm({
+          id: createdEdge.id,
+          relation: 'Influencia',
+          weight: 'moderado',
+          reverseWeight: 'moderado',
+          bidirectional: false,
+          polarity: 'positive',
+          reversePolarity: 'positive',
+          sourceHandle: createdEdge.sourceHandle,
+          targetHandle: createdEdge.targetHandle
+        });
+        setIsModalOpen(true);
+      }
+    }, 100);
+  }, [nodes, emitUpdate, takeSnapshot, edges]);
+
+  // Edge Update Handler - allows dragging arrowheads to reconnect
+  const onEdgeUpdate = useCallback((oldEdge: Edge, newConnection: Connection) => {
+    // Preserve the edge data when reconnecting
+    const updatedEdge = {
+      ...oldEdge,
+      source: newConnection.source,
+      target: newConnection.target,
+      sourceHandle: newConnection.sourceHandle,
+      targetHandle: newConnection.targetHandle,
+    };
+    const newEdges = edges.map(e => e.id === oldEdge.id ? updatedEdge : e);
+    takeSnapshot({ nodes, edges: newEdges });
+  }, [edges, nodes, takeSnapshot]);
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     if (node.type === 'regionNode') return; // Don't edit regions
@@ -592,7 +794,9 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
       reverseWeight: edgeData.reverseWeight || edgeData.weight || 'moderado',
       bidirectional: edgeData.bidirectional || false,
       polarity: edgeData.polarity || 'positive',
-      reversePolarity: edgeData.reversePolarity || edgeData.polarity || 'positive'
+      reversePolarity: edgeData.reversePolarity || edgeData.polarity || 'positive',
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle
     });
     setIsModalOpen(true);
   }, []);
@@ -615,35 +819,29 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
   const handleSave = () => {
     if (!selectedItem || !editForm) return;
 
-    takeSnapshot({ nodes, edges }); // SNAPSHOT BEFORE SAVE
-
     if (selectedItem.type === 'node') {
-      setNodes((nds) => {
-        // If new node
-        if ((editForm as any).isNew) {
-          const parentKey = editForm.category === 'Intervenção' ? 'Comportamento' : (REGIONS[editForm.category] ? editForm.category : 'Contexto');
-          const newNode: Node = {
-            id: editForm.id,
-            type: 'pbtNode',
-            position: getRelativePosition(parentKey),
-            data: {
-              label: editForm.label,
-              category: editForm.category,
-              change: editForm.change,
-              isTarget: editForm.isTarget,
-              isModerator: editForm.isModerator
-            },
-            parentId: `region-${parentKey}`,
-            extent: 'parent'
-          };
-          const newNodes = [...nds, newNode];
-          emitUpdate(newNodes, edges);
-          return newNodes;
-        }
+      let updatedNodes: Node[] = [];
 
-        const newNodes = nds.map(node => {
+      if ((editForm as any).isNew) {
+        const parentKey = editForm.category === 'Intervenção' ? 'Comportamento' : (REGIONS[editForm.category] ? editForm.category : 'Contexto');
+        const newNode: Node = {
+          id: editForm.id,
+          type: 'pbtNode',
+          position: getRelativePosition(parentKey),
+          data: {
+            label: editForm.label,
+            category: editForm.category,
+            change: editForm.change,
+            isTarget: editForm.isTarget,
+            isModerator: editForm.isModerator
+          },
+          parentId: `region-${parentKey}`,
+          extent: 'parent'
+        };
+        updatedNodes = [...nodes, newNode];
+      } else {
+        updatedNodes = nodes.map(node => {
           if (node.id === selectedItem.data.id) {
-            // Check if category changed to update parent
             const oldCategory = node.data.category;
             const newCategory = editForm.category;
 
@@ -668,71 +866,78 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
           }
           return node;
         });
-        emitUpdate(newNodes, edges);
-        return newNodes;
-      });
+      }
+
+      takeSnapshot({ nodes: updatedNodes, edges });
+      emitUpdate(updatedNodes, edges);
     } else if (selectedItem.type === 'edge') {
-      setEdges((eds) => {
-        const newEdges = eds.map(edge => {
-          if (edge.id === selectedItem.data.id) {
-            const weight = editForm.weight;
-            const reverseWeight = editForm.reverseWeight || weight;
-            const isBidirectional = editForm.bidirectional;
-            const forwardPolarity = editForm.polarity;
-            const reversePolarity = editForm.reversePolarity || forwardPolarity;
+      const weight = editForm.weight;
+      const reverseWeight = editForm.reverseWeight || weight;
+      const isBidirectional = editForm.bidirectional;
+      const forwardPolarity = editForm.polarity;
+      const reversePolarity = editForm.reversePolarity || forwardPolarity;
 
-            let arrowSize = 20;
-            let strokeWidth = 1.5;
-            if (weight === 'fraco') { arrowSize = 10; strokeWidth = 1; }
-            if (weight === 'forte') { arrowSize = 45; strokeWidth = 3.5; }
+      // Line is neutral (2px solid)
+      let strokeWidth = 2;
 
-            // Helper to get marker config based on polarity AND weight
-            const getMarkerConfig = (polarity: string, edgeWeight: string) => {
-              let arrowSize = 20;
-              if (edgeWeight === 'fraco') { arrowSize = 10; }
-              if (edgeWeight === 'forte') { arrowSize = 45; }
+      // Helper to get marker config based on polarity AND weight
+      const getMarkerConfig = (polarity: string, edgeWeight: string) => {
+        let arrowSize = 15;
+        if (edgeWeight === 'fraco') { arrowSize = 11; }
+        if (edgeWeight === 'forte') { arrowSize = 18; }
 
-              if (polarity === 'negative') {
-                const sizeMap: Record<string, string> = {
-                  'fraco': 'arrow-hollow-fraco',
-                  'moderado': 'arrow-hollow-moderado',
-                  'forte': 'arrow-hollow-forte'
-                };
-                return sizeMap[edgeWeight] || 'arrow-hollow-moderado';
-              }
-              return {
-                type: MarkerType.ArrowClosed,
-                width: arrowSize,
-                height: arrowSize,
-                color: '#475569'
-              };
-            };
+        if (polarity === 'negative') {
+          const sizeMap: Record<string, string> = {
+            'fraco': 'arrow-hollow-fraco',
+            'moderado': 'arrow-hollow-moderado',
+            'forte': 'arrow-hollow-forte'
+          };
+          return sizeMap[edgeWeight] || 'arrow-hollow-moderado';
+        }
+        return {
+          type: MarkerType.ArrowClosed,
+          width: arrowSize,
+          height: arrowSize,
+          color: '#64748b'
+        };
+      };
 
-            const markerEnd = getMarkerConfig(forwardPolarity, weight);
-            const markerStart = isBidirectional ? getMarkerConfig(reversePolarity, reverseWeight) : undefined;
+      const markerEnd = getMarkerConfig(forwardPolarity, weight);
+      const markerStart = isBidirectional ? getMarkerConfig(reversePolarity, reverseWeight) : undefined;
 
-            return {
-              ...edge,
-              label: editForm.relation,
-              style: { ...edge.style, strokeWidth },
-              markerEnd,
-              markerStart,
-              data: {
-                ...edge.data,
-                weight,
-                reverseWeight,
-                bidirectional: isBidirectional,
-                relation: editForm.relation,
-                polarity: forwardPolarity,
-                reversePolarity: reversePolarity
-              }
-            };
-          }
-          return edge;
-        });
-        emitUpdate(nodes, newEdges);
-        return newEdges;
+      const updatedEdges = edges.map(edge => {
+        if (edge.id === selectedItem.data.id) {
+          return {
+            ...edge,
+            label: editForm.relation,
+            sourceHandle: editForm.sourceHandle,
+            targetHandle: editForm.targetHandle,
+            animated: !isBidirectional,
+            style: {
+              ...edge.style,
+              strokeWidth,
+              strokeDasharray: isBidirectional ? '8, 4' : undefined
+            },
+            className: isBidirectional ? 'react-flow__edge-bidirectional' : '',
+
+            markerEnd,
+            markerStart,
+            data: {
+              ...edge.data,
+              weight,
+              reverseWeight,
+              bidirectional: isBidirectional,
+              relation: editForm.relation,
+              polarity: forwardPolarity,
+              reversePolarity: reversePolarity
+            }
+          };
+        }
+        return edge;
       });
+
+      takeSnapshot({ nodes, edges: updatedEdges });
+      emitUpdate(nodes, updatedEdges);
     }
     setIsModalOpen(false);
     setSelectedItem(null);
@@ -740,17 +945,15 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
 
   const handleDelete = () => {
     if (!selectedItem) return;
-    takeSnapshot({ nodes, edges }); // SNAPSHOT BEFORE DELETE
 
     if (selectedItem.type === 'node') {
       const newNodes = nodes.filter(n => n.id !== selectedItem.data.id);
       const newEdges = edges.filter(e => e.source !== selectedItem.data.id && e.target !== selectedItem.data.id); // Cleanup edges
-      setNodes(newNodes);
-      setEdges(newEdges);
+      takeSnapshot({ nodes: newNodes, edges: newEdges });
       emitUpdate(newNodes, newEdges);
     } else {
       const newEdges = edges.filter(e => e.id !== selectedItem.data.id);
-      setEdges(newEdges);
+      takeSnapshot({ nodes, edges: newEdges });
       emitUpdate(nodes, newEdges);
     }
     setIsModalOpen(false);
@@ -759,8 +962,6 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
 
   // Auto-Organize: Redistributes nodes using Dagre layout
   const handleAutoOrganize = useCallback(() => {
-    takeSnapshot({ nodes, edges }); // SNAPSHOT BEFORE REORGANIZE
-
     const { nodes: reorganizedNodes, edges: reorganizedEdges } = getGridLayoutedElements(
       nodes.filter(n => n.type === 'pbtNode').map(n => ({
         id: n.id,
@@ -771,10 +972,9 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
       edges
     );
 
-    setNodes(reorganizedNodes);
-    setEdges(reorganizedEdges);
+    takeSnapshot({ nodes: reorganizedNodes, edges: reorganizedEdges });
     emitUpdate(reorganizedNodes, reorganizedEdges);
-  }, [nodes, edges, setNodes, setEdges, emitUpdate, takeSnapshot]);
+  }, [nodes, edges, emitUpdate, takeSnapshot]);
 
 
   if (!nodes.length) {
@@ -792,16 +992,27 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
           {/* BackgroundMatrix removed - using Region Nodes now */}
           <div className="absolute inset-0 z-10">
             <ReactFlow
-              nodes={showRegionLabels ? nodes : nodes.filter(n => !n.id.startsWith('region-'))}
+              nodes={nodes.map(n => {
+                if (n.id.startsWith('region-')) {
+                  return { ...n, data: { ...n.data, hideLabels: !showRegionLabels } };
+                }
+                if (n.type === 'pbtNode') {
+                  return { ...n, data: { ...n.data, showCategoryBadge: !showRegionLabels } };
+                }
+                return n;
+              })}
               edges={edges}
               nodeTypes={nodeTypes}
 
               onNodesChange={onNodesChangeWrapper}
               onEdgesChange={onEdgesChange}
 
+              onConnectStart={onConnectStart}
+              onConnectEnd={onConnectEnd}
               onConnect={handleConnectWrapper}
               onNodeClick={onNodeClick}
               onEdgeClick={onEdgeClick}
+              connectOnClick={true}
               fitView
               attributionPosition="bottom-right"
               minZoom={0.5}
@@ -811,17 +1022,18 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
               <Controls className="bg-slate-800 border b-slate-700 fill-slate-300" showInteractive={true} />
               <svg>
                 <defs>
-                  {/* Weak Hollow Arrow (Size 10) */}
-                  <marker id="arrow-hollow-fraco" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="#475569" strokeWidth="1" />
+                  {/* Directional Weights - Size varies to show strength */}
+                  {/* Weak: Small (11px) */}
+                  <marker id="arrow-hollow-fraco" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="#64748b" strokeWidth="1" />
                   </marker>
-                  {/* Moderate Hollow Arrow (Size 20) */}
-                  <marker id="arrow-hollow-moderado" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="20" markerHeight="20" orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="#475569" strokeWidth="1" />
+                  {/* Moderate: Medium (15px) */}
+                  <marker id="arrow-hollow-moderado" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="15" markerHeight="15" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="#64748b" strokeWidth="1" />
                   </marker>
-                  {/* Strong Hollow Arrow (Size 45) */}
-                  <marker id="arrow-hollow-forte" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="45" markerHeight="45" orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="#475569" strokeWidth="1" />
+                  {/* Strong: Large (18px) */}
+                  <marker id="arrow-hollow-forte" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="18" markerHeight="18" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="#64748b" strokeWidth="1" />
                   </marker>
                 </defs>
               </svg>
@@ -1037,70 +1249,169 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
                 </div>
               )}
 
-              <div className="absolute bottom-4 right-14 bg-slate-900/90 backdrop-blur border border-slate-700/50 p-3 rounded-lg shadow-xl z-50 flex gap-6">
+              {/* Tutorial/Legend Toggle Button */}
+              <button
+                onClick={() => setShowLegend(!showLegend)}
+                className="absolute bottom-4 right-14 z-50 bg-slate-800/90 hover:bg-slate-700/90 backdrop-blur border border-slate-600/50 px-3 py-2 rounded-lg shadow-xl transition-all flex items-center gap-2 text-slate-300 hover:text-white"
+                title="Como ler a rede"
+              >
+                <HelpCircle className="w-4 h-4" />
+                <span className="text-xs font-medium">Legenda</span>
+                {showLegend ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+              </button>
 
-                {/* Tipos de Conexão */}
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 border-b border-white/5 pb-1">Tipos</h4>
-                  <div className="flex items-center gap-3 opacity-80">
-                    <div className="flex items-center w-8 justify-center">
-                      <div className="w-6 h-0.5 bg-slate-400"></div>
-                      <ArrowRight className="w-3 h-3 text-slate-400 -ml-1" />
-                    </div>
-                    <div>
-                      <span className="block text-[10px] font-bold text-slate-300">Influência</span>
-                      <span className="block text-[9px] text-slate-500">Unidirecional</span>
-                    </div>
+              {/* Full Tutorial/Legend Panel */}
+              {showLegend && (
+                <div className="absolute bottom-16 right-14 bg-slate-900/95 backdrop-blur-md border border-slate-700/50 p-4 rounded-xl shadow-2xl z-50 max-w-md animate-in slide-in-from-bottom-2 duration-200">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4 text-blue-400" />
+                      Como Ler a Rede de Processos
+                    </h3>
+                    <button
+                      onClick={() => setShowLegend(false)}
+                      className="text-slate-400 hover:text-white transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-3 opacity-80">
-                    <div className="flex items-center w-8 justify-center">
-                      <ArrowLeft className="w-3 h-3 text-slate-400 -mr-1" />
-                      <div className="w-6 h-0.5 bg-slate-400"></div>
-                      <ArrowRight className="w-3 h-3 text-slate-400 -ml-1" />
-                    </div>
+
+                  <div className="space-y-4">
+                    {/* Direção */}
                     <div>
-                      <span className="block text-[10px] font-bold text-slate-300">Feedback</span>
-                      <span className="block text-[9px] text-slate-500">Bidirecional</span>
+                      <h4 className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">
+                        📍 Direção da Influência
+                      </h4>
+                      <div className="space-y-2 pl-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center w-12 justify-center">
+                            <div className="w-8 border-b-2 border-dashed border-slate-400"></div>
+                            <ArrowRight className="w-4 h-4 text-slate-400 -ml-1" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-slate-200 font-medium">Unidirecional</span>
+                            <span className="text-[9px] text-slate-500 block">A → B (A influencia B)</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center w-12 justify-center">
+                            <ArrowLeft className="w-4 h-4 text-slate-400 -mr-1" />
+                            <div className="w-8 h-0.5 bg-slate-400"></div>
+                            <ArrowRight className="w-4 h-4 text-slate-400 -ml-1" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-slate-200 font-medium">Bidirecional</span>
+                            <span className="text-[9px] text-slate-500 block">A ↔ B (Influência mútua)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Separator */}
+                    <div className="border-t border-slate-700/50"></div>
+
+                    {/* Intensidade */}
+                    <div>
+                      <h4 className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2">
+                        💪 Intensidade da Conexão
+                      </h4>
+                      <div className="space-y-2 pl-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center w-12 justify-center">
+                            <div className="w-8 bg-slate-400" style={{ height: '2px' }}></div>
+                            <ArrowRight className="text-slate-400 -ml-1" style={{ width: '11px', height: '11px' }} />
+                          </div>
+                          <span className="text-[11px] text-slate-400">Fraca (Ponta Pequena)</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center w-12 justify-center">
+                            <div className="w-8 bg-slate-300" style={{ height: '2px' }}></div>
+                            <ArrowRight className="text-slate-300 -ml-1" style={{ width: '15px', height: '15px' }} />
+                          </div>
+                          <span className="text-[11px] text-slate-300">Moderada (Ponta Média)</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center w-12 justify-center">
+                            <div className="w-8 bg-white" style={{ height: '2px' }}></div>
+                            <ArrowRight className="text-white -ml-1" style={{ width: '18px', height: '18px' }} />
+                          </div>
+                          <span className="text-[11px] text-white font-medium">Forte (Ponta Grande)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Separator */}
+                    <div className="border-t border-slate-700/50"></div>
+
+                    {/* Polaridade */}
+                    <div>
+                      <h4 className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-2">
+                        ⚡ Polaridade (Tipo de Efeito)
+                      </h4>
+                      <div className="space-y-2 pl-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center w-12 justify-center">
+                            <div className="w-8 h-0.5 bg-slate-300"></div>
+                            <svg className="w-5 h-5 -ml-1" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z" fill="#94a3b8" />
+                            </svg>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-emerald-400 font-medium">Positiva (Seta Cheia)</span>
+                            <span className="text-[9px] text-slate-500 block">↑A causa ↑B (amplifica, excitatória)</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center w-12 justify-center">
+                            <div className="w-8 h-0.5 bg-slate-300"></div>
+                            <svg className="w-5 h-5 -ml-1" viewBox="0 0 24 24">
+                              <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z" fill="none" stroke="#94a3b8" strokeWidth="2" />
+                            </svg>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-red-400 font-medium">Negativa (Seta Vazia)</span>
+                            <span className="text-[9px] text-slate-500 block">↑A causa ↓B (inibe, suprime)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Separator */}
+                    <div className="border-t border-slate-700/50"></div>
+
+                    {/* Nós */}
+                    <div>
+                      <h4 className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-2">
+                        🧩 Processos (Nós)
+                      </h4>
+                      <div className="space-y-2 pl-2 text-[10px] text-slate-400">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded-none bg-blue-500/30 border border-blue-500/50"></div>
+                          <span>Retangular = Mecanismo (mediador)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded-lg bg-teal-500/30 border border-teal-500/50"></div>
+                          <span>Arredondado = Fator Moderador (condição)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded-none bg-yellow-500/30 border border-yellow-500/50 relative">
+                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full"></div>
+                          </div>
+                          <span>⭐ Estrela = Alvo Terapêutico</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dica */}
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 mt-2">
+                      <p className="text-[9px] text-blue-300/80">
+                        💡 <strong>Dica:</strong> Clique em qualquer nó ou conexão para editar suas propriedades.
+                        Arraste de um ponto ● para outro para criar novas conexões.
+                      </p>
                     </div>
                   </div>
                 </div>
-
-                {/* Separator */}
-                <div className="w-px bg-white/10"></div>
-
-                {/* Intensidade */}
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 border-b border-white/5 pb-1">Intensidade</h4>
-
-                  {/* Fraca */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center w-8 justify-center">
-                      <div className="w-6 bg-slate-400" style={{ height: '1px' }}></div>
-                      <ArrowRight className="text-slate-400 -ml-1" style={{ width: '10px', height: '10px' }} />
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-medium">Fraca</span>
-                  </div>
-
-                  {/* Moderada */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center w-8 justify-center">
-                      <div className="w-6 bg-slate-300" style={{ height: '2px' }}></div>
-                      <ArrowRight className="text-slate-300 -ml-1" style={{ width: '16px', height: '16px' }} />
-                    </div>
-                    <span className="text-[10px] text-slate-300 font-medium">Moderada</span>
-                  </div>
-
-                  {/* Forte */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center w-8 justify-center">
-                      <div className="w-6 bg-white" style={{ height: '4px' }}></div>
-                      <ArrowRight className="text-white -ml-1" style={{ width: '30px', height: '30px' }} />
-                    </div>
-                    <span className="text-[10px] text-white font-bold">Forte (Dominante)</span>
-                  </div>
-                </div>
-
-              </div>
+              )}
             </ReactFlow>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { usePatients } from '../context/PatientContext';
 import { analyzeWithMaterial } from '../lib/gemini';
 import { Upload, X, FileText, Send, Loader2, BookOpen, Plus, Sparkles, ShieldCheck } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { aggregateAnamnesisData } from '../lib/anamnesis-utils';
 
 export const CurationWorkspace: React.FC = () => {
     const { currentPatient, updatePatient } = usePatients();
@@ -45,7 +46,7 @@ export const CurationWorkspace: React.FC = () => {
 CONTEXTO DO PACIENTE:
 Nome: ${currentPatient?.name}
 Idade: ${currentPatient?.birthDate ? new Date().getFullYear() - new Date(currentPatient.birthDate).getFullYear() : 'N/A'}
-Resumo Anamnese: ${currentPatient?.clinicalRecords.anamnesis.content || 'Sem dados'}
+Resumo Anamnese: ${currentPatient ? aggregateAnamnesisData(currentPatient) : 'Sem dados'}
 Queixa Principal (Sessão Atual): ${currentPatient?.clinicalRecords.sessions[0]?.soap.queixa_principal || 'N/A'}
 
 TAREFA (MODO CRIADOR):

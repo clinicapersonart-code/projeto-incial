@@ -23,16 +23,65 @@ export const PatientProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     useEffect(() => {
         const saved = localStorage.getItem('clinic_patients');
+        const anamnesisRich = {
+            1: "Maria Silva Santos, 38 anos, divorciada, heterossexual, formada em Administração. Atualmente desempregada.",
+            2: "Crises de pânico recorrentes e ansiedade generalizada. Sente que 'o coração vai explodir' e teme morrer durante as crises. Intensidade 9/10.",
+            3: "Perdeu o emprego há 3 meses em uma reestruturação da empresa. Desde então, a ansiedade disparou. Tem evitado sair de casa para não ter crises em público.",
+            4: "Infância estável, mas com cobrança excessiva por desempenho acadêmico. Sempre foi a 'filha perfeita'.",
+            5: "Pai autoritário e mãe ansiosa. Histórico de depressão na família materna.",
+            6: "Divorciada há 2 anos. Relacionamento atual instável, com muitas discussões sobre o futuro financeiro.",
+            7: "Sono fragmentado (acorda às 3h com palpitações). Alimentação irregular. Parou de frequentar a academia.",
+            8: "Muita ruminação sobre o futuro. Medo constante de passar por necessidades financeiras. Evitação de situações sociais.",
+            9: "Morte súbita de uma tia próxima no ano passado, o que aumentou seu medo de problemas cardíacos durante as crises.",
+            10: "Conta com o apoio da irmã, mas se sente um 'fardo'. Tem poucas amigas próximas no momento.",
+            11: "Fez terapia há 5 anos por causa do divórcio. Tomou fluoxetina por um tempo, mas parou por conta própria.",
+            12: "Autoestima fragilizada pelo desemprego. Sente-se incompetente apesar do currículo sólido.",
+            13: "Deseja retomar o controle das crises, voltar a trabalhar e conseguir frequentar lugares públicos sem medo.",
+            14: "Hipótese de Transtorno de Pânico e Ansiedade Generalizada. Focar em regulação emocional e exposição gradual."
+        };
+
         if (saved) {
             try {
-                const loaded = JSON.parse(saved);
-                const migrated = loaded.map((p: Patient) => migratePatientToEells(p));
+                let loaded = JSON.parse(saved);
+                let migrated = loaded.map((p: Patient) => migratePatientToEells(p));
+
+                // One-time Reset Maria for the user's test
+                const mariaIndex = migrated.findIndex((p: Patient) => p.name === "Maria Silva Santos");
+
+                // FORCE RESET strategy: We prefer the clean state defined in code for testing
+                // We create a specific ID to ensure it is treated as a new fresh record
+                const cleanMaria: Patient = {
+                    id: "maria-fresh-test-v3", // New ID to invalidate old cache
+                    name: "Maria Silva Santos",
+                    birthDate: "1985-05-15",
+                    createdAt: new Date().toISOString(),
+                    clinicalRecords: {
+                        anamnesis: {
+                            content: JSON.stringify(anamnesisRich),
+                            updatedAt: new Date().toISOString(),
+                            history: []
+                        },
+                        caseFormulation: { content: "", updatedAt: new Date().toISOString(), eells: initializeEellsData().formulation },
+                        treatmentPlan: { goals: [], updatedAt: new Date().toISOString() },
+                        assessments: [],
+                        customProtocols: [],
+                        sessions: []
+                    },
+                    eellsData: initializeEellsData()
+                };
+
+                if (mariaIndex !== -1) {
+                    migrated[mariaIndex] = cleanMaria;
+                } else {
+                    migrated.push(cleanMaria);
+                }
+
                 setPatients(migrated);
             } catch (e) {
                 console.error("Failed to parse patients from local storage", e);
             }
         } else {
-            // DEMO PATIENT: Maria Silva Santos
+            // DEMO PATIENT: Maria Silva Santos (Initial Clean Version)
             const demoId = crypto.randomUUID();
             const mariaData: Patient = {
                 id: demoId,
@@ -40,40 +89,18 @@ export const PatientProvider: React.FC<{ children: ReactNode }> = ({ children })
                 birthDate: "1985-05-15",
                 createdAt: new Date().toISOString(),
                 clinicalRecords: {
-                    anamnesis: { content: "Paciente relata ansiedade e insônia após perda de emprego.", updatedAt: new Date().toISOString(), history: [] },
+                    anamnesis: {
+                        content: JSON.stringify(anamnesisRich),
+                        updatedAt: new Date().toISOString(),
+                        history: []
+                    },
                     caseFormulation: { content: "", updatedAt: new Date().toISOString() },
-                    treatmentPlan: { goals: ["Reduzir ruminação", "Melhorar sono"], updatedAt: new Date().toISOString() },
+                    treatmentPlan: { goals: [], updatedAt: new Date().toISOString() },
                     assessments: [],
                     customProtocols: [],
                     sessions: []
                 },
-                eellsData: {
-                    ...initializeEellsData(),
-                    pbt: {
-                        nodes: [
-                            { id: 'node-1', label: 'Desemprego', category: 'Contexto', change: 'novo', isTarget: false, isModerator: true }, // MODERATOR (Rounded)
-                            { id: 'node-2', label: 'Preocupação', category: 'Cognitiva', change: 'aumentou', isTarget: true }, // MEDIATOR (Square)
-                            { id: 'node-3', label: 'Isolamento', category: 'Comportamento', change: 'aumentou' },
-                            { id: 'node-4', label: 'Motivação', category: 'Motivacional', change: 'diminuiu' },
-                            { id: 'node-5', label: 'Tristeza', category: 'Afetiva', change: 'estavel' },
-                            { id: 'node-6', label: 'Insônia', category: 'Biofisiológica', change: 'aumentou' },
-                            { id: 'node-7', label: 'Irritabilidade', category: 'Afetiva', change: 'aumentou' }
-                        ],
-                        edges: [
-                            // 1. Unidirectional (Black)
-                            { source: 'node-1', target: 'node-2', relation: 'Gatilho', weight: 'forte', polarity: 'positive' },
-
-                            // 2. Feedback Loop (Black-Black) "Spiral"
-                            { source: 'node-2', target: 'node-3', relation: 'Ciclo Vicioso', weight: 'moderado', bidirectional: true, polarity: 'positive', reversePolarity: 'positive' },
-
-                            // 3. Inhibition Loop (White-White) "Seesaw"
-                            { source: 'node-4', target: 'node-5', relation: 'Conflito', weight: 'moderado', bidirectional: true, polarity: 'negative', reversePolarity: 'negative' },
-
-                            // 4. Push-Pull (Black-White)
-                            { source: 'node-6', target: 'node-7', relation: 'Desgaste', weight: 'forte', bidirectional: true, polarity: 'positive', reversePolarity: 'negative' }
-                        ]
-                    }
-                }
+                eellsData: initializeEellsData()
             };
             setPatients([mariaData]);
         }

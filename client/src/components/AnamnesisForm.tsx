@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePatients } from '../context/PatientContext';
-import { Save, FileText, Sparkles, Loader2, Cloud, CloudOff } from 'lucide-react';
-import { generateInitialFormulation } from '../lib/gemini';
+import { Save, FileText, Sparkles, Loader2, Cloud, CloudOff, BrainCircuit, ArrowRight } from 'lucide-react';
+import { generateInitialFormulation, generatePBTNodesFromAnamnesis } from '../lib/gemini';
+import { useNavigation } from '../context/NavigationContext';
 
 const DEFAULT_TOPICS = [
     {
@@ -156,7 +157,9 @@ export const AnamnesisForm: React.FC = () => {
     const [activeTemplate, setActiveTemplate] = useState('default');
     const [customTemplates, setCustomTemplates] = useState<any[]>([]);
     const [isSaving, setIsSaving] = useState(false);
-    const [isGeneratingFormulation, setIsGeneratingFormulation] = useState(false);
+
+    const [isGeneratingPBT, setIsGeneratingPBT] = useState(false);
+    const { navigateTo } = useNavigation();
 
     // Auto-Save States
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -226,48 +229,63 @@ export const AnamnesisForm: React.FC = () => {
         setHasUnsavedChanges(true); // Flag change
     };
 
-    const handleGenerateFormulation = async () => {
+
+
+    // Gerar Processos PBT a partir da Anamnese
+    const handleGeneratePBTNodes = async () => {
         if (!currentPatient) return;
 
-        // Juntar toda anamnese em texto
-        const anamnesisText = Object.entries(anamnesisData)
-            .map(([topicId, content]) => {
-                const topic = DEFAULT_TOPICS.find(t => t.id === parseInt(topicId));
-                return `${topic?.title}:\n${content}`;
-            })
-            .join('\n\n');
+        const anamnesisRecord: Record<string, string> = {};
+        Object.entries(anamnesisData).forEach(([topicId, content]) => {
+            const topic = DEFAULT_TOPICS.find(t => t.id === parseInt(topicId));
+            if (topic && content) {
+                anamnesisRecord[topic.title] = content;
+            }
+        });
 
-        if (!anamnesisText.trim()) {
+        if (Object.keys(anamnesisRecord).length === 0) {
             alert('Preencha a anamnese primeiro!');
             return;
         }
 
-        if (!confirm('Gerar Formulação de Caso automaticamente com IA?')) return;
+        if (!confirm('Gerar Processos (Nós) da Rede PBT automaticamente com IA?')) return;
 
-        setIsGeneratingFormulation(true);
+        setIsGeneratingPBT(true);
         try {
-            const assessments = currentPatient.clinicalRecords.assessments || [];
-            const formulation = await generateInitialFormulation(anamnesisText, assessments);
+            const currentSession = currentPatient.clinicalRecords.sessions[0];
+            const existingNodes = currentSession?.pbtNetwork?.nodes || [];
 
-            // Atualizar paciente com formulação
-            updatePatient({
-                ...currentPatient,
-                clinicalRecords: {
-                    ...currentPatient.clinicalRecords,
-                    caseFormulation: {
-                        ...currentPatient.clinicalRecords.caseFormulation,
-                        eells: formulation as any,
-                        updatedAt: new Date().toISOString()
-                    }
-                }
-            });
+            const result = await generatePBTNodesFromAnamnesis(anamnesisRecord, existingNodes);
 
-            alert('✅ Formulação gerada! Vá para "Conceituação" para revisar.');
+            // Merge with existing nodes
+            const mergedNodes = [...existingNodes, ...result.nodes];
+            const currentEdges = currentSession?.pbtNetwork?.edges || [];
+
+            // Update patient
+            const updatedPatient = JSON.parse(JSON.stringify(currentPatient));
+            if (!updatedPatient.clinicalRecords.sessions) updatedPatient.clinicalRecords.sessions = [];
+
+            if (updatedPatient.clinicalRecords.sessions.length === 0) {
+                updatedPatient.clinicalRecords.sessions.push({
+                    id: crypto.randomUUID(),
+                    date: new Date().toISOString(),
+                    summary: "Sessão Inicial",
+                    pbtNetwork: { nodes: [], edges: [] }
+                });
+            }
+
+            updatedPatient.clinicalRecords.sessions[0].pbtNetwork = {
+                nodes: mergedNodes,
+                edges: currentEdges
+            };
+
+            updatePatient(updatedPatient);
+            alert(`✅ ${result.nodes.length} processos identificados! Vá para "Rede PBT" para visualizar.`);
         } catch (error) {
-            console.error('Erro ao gerar formulação:', error);
-            alert('Erro ao gerar formulação. Tente novamente.');
+            console.error('Erro ao gerar processos PBT:', error);
+            alert('Erro ao gerar processos. Tente novamente.');
         } finally {
-            setIsGeneratingFormulation(false);
+            setIsGeneratingPBT(false);
         }
     };
 
@@ -304,13 +322,14 @@ export const AnamnesisForm: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex gap-3">
+
                     <button
-                        onClick={handleGenerateFormulation}
-                        disabled={isGeneratingFormulation || !Object.keys(anamnesisData).length}
-                        className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg disabled:opacity-50"
+                        onClick={handleGeneratePBTNodes}
+                        disabled={isGeneratingPBT || !Object.keys(anamnesisData).length}
+                        className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg disabled:opacity-50"
                     >
-                        {isGeneratingFormulation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                        {isGeneratingFormulation ? 'Gerando...' : '🧠 Gerar Formulação (IA)'}
+                        {isGeneratingPBT ? <Loader2 className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
+                        {isGeneratingPBT ? 'Gerando...' : '🕸️ Gerar Processos PBT'}
                     </button>
                     <button
                         onClick={handleSave}
@@ -353,6 +372,39 @@ export const AnamnesisForm: React.FC = () => {
                     </div>
                 ))}
             </div>
+
+            {/* Guidance for Next Steps */}
+            {Object.keys(anamnesisData).length > 2 && (
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6 mx-1 my-6 animate-in slide-in-from-bottom-8 duration-700 shadow-lg">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div className="space-y-2">
+                            <h4 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+                                🚀 Próximos Passos
+                            </h4>
+                            <p className="text-sm text-indigo-800/80 max-w-lg">
+                                Transforme a história clínica em um modelo funcional.
+                            </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                            <button
+                                onClick={handleGeneratePBTNodes}
+                                disabled={isGeneratingPBT}
+                                className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-3 rounded-xl font-semibold transition-all shadow-md disabled:opacity-50"
+                            >
+                                {isGeneratingPBT ? <Loader2 className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
+                                {isGeneratingPBT ? 'Gerando...' : '🕸️ Gerar Processos'}
+                            </button>
+                            <button
+                                onClick={() => navigateTo('formulation')}
+                                className="flex items-center justify-center gap-2 bg-white hover:bg-indigo-50 text-indigo-700 border-2 border-indigo-300 px-5 py-3 rounded-xl font-semibold transition-all shadow-sm"
+                            >
+                                Ir para Conceituação
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Footer Save */}
             <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent pt-6 pb-4">

@@ -11,12 +11,13 @@ import { usePatients } from '../context/PatientContext';
 import { Gad7Form } from './forms/Gad7Form';
 import { PatientDashboard } from './PatientDashboard';
 import { Sidebar } from './Sidebar';
-import { AnamnesisForm } from './AnamnesisForm';
+import { AnamnesisSelector } from './AnamnesisSelector';
 import { ProblemListCard } from './ProblemListCard';
 import { GoalsManager } from './GoalsManager';
 import { InterventionsPanel } from './InterventionsPanel';
 import { ProntuarioCRP } from './ProntuarioCRP';
 import { TreatmentPlanTab } from './TreatmentPlanTab';
+import { MonitoringDashboard } from './MonitoringDashboard';
 import {
     BrainCircuit,
     Target,
@@ -33,6 +34,7 @@ import {
 } from 'lucide-react';
 import { SessionTimeline } from './SessionTimeline';
 import { AlchemyLab } from './AlchemyLab';
+import { NavigationProvider } from '../context/NavigationContext';
 
 
 interface AnalysisResult {
@@ -67,7 +69,7 @@ export const ClinicalWorkspace: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     // Mantive os IDs técnicos (dashboard, soap, etc) mas mudei os rótulos visuais abaixo
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'soap' | 'network' | 'plan' | 'forms' | 'anamnesis' | 'formulation' | 'curation' | 'evolution' | 'alchemy' | 'copilot' | 'eells' | 'prontuario'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'soap' | 'network' | 'plan' | 'forms' | 'anamnesis' | 'formulation' | 'curation' | 'evolution' | 'alchemy' | 'copilot' | 'eells' | 'prontuario' | 'library'>('dashboard');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     if (!currentPatient) return null;
@@ -111,7 +113,6 @@ export const ClinicalWorkspace: React.FC = () => {
 
 
 
-    // Handler for PBT Graph updates (Persistence) - Copied from PatientDashboard for consistency
     const handleGraphUpdate = (newNodes: any[], newEdges: any[]) => {
         if (!currentPatient) return;
 
@@ -135,6 +136,32 @@ export const ClinicalWorkspace: React.FC = () => {
         };
 
         updatePatient(updatedPatient);
+    };
+
+    const handleLiveAnalysis = (analysis: { active_nodes?: any[] }) => {
+        if (!analysis.active_nodes || !currentPatient) return;
+
+        // Get current PBT State
+        const currentSession = currentPatient.clinicalRecords.sessions[0] || { pbtNetwork: { nodes: [], edges: [] } };
+        const currentNodes = currentSession.pbtNetwork?.nodes || [];
+        const currentEdges = currentSession.pbtNetwork?.edges || [];
+
+        // Filter New Nodes
+        const newNodes = analysis.active_nodes
+            .filter((an: any) => !currentNodes.some((cn: any) => cn.label.toLowerCase().includes(an.label.toLowerCase())))
+            .map((an: any) => ({
+                id: `live-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                label: an.label,
+                category: an.category || 'Contexto',
+                change: 'novo',
+                type: 'pbtNode'
+            }));
+
+        if (newNodes.length > 0) {
+            // Merge and Update
+            const updatedNodes = [...currentNodes, ...newNodes];
+            handleGraphUpdate(updatedNodes, currentEdges);
+        }
     };
 
     const renderContent = () => {
@@ -170,11 +197,11 @@ export const ClinicalWorkspace: React.FC = () => {
 
         switch (activeTab) {
             case 'copilot':
-                return <CoPilotChat onSessionEnd={() => setActiveTab('dashboard')} />;
+                return <CoPilotChat onSessionEnd={() => setActiveTab('dashboard')} onAnalysisUpdate={handleLiveAnalysis} />;
             case 'dashboard':
                 return <PatientDashboard activeTab={activeTab} />;
             case 'anamnesis':
-                return <AnamnesisForm />;
+                return <AnamnesisSelector />;
             case 'eells':
                 return (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
@@ -184,12 +211,7 @@ export const ClinicalWorkspace: React.FC = () => {
                     </div>
                 );
             case 'forms':
-                return (
-                    <div className="space-y-6">
-                        <AssessmentChart assessments={currentPatient.clinicalRecords.assessments} />
-                        <Gad7Form />
-                    </div>
-                );
+                return <MonitoringDashboard currentPatient={currentPatient} />;
             case 'formulation':
                 return <CaseFormulation />;
             case 'curation':
@@ -214,8 +236,8 @@ export const ClinicalWorkspace: React.FC = () => {
                 if (!pbtData || (!pbtData.nodes.length && !pbtData.edges.length)) {
                     // Show empty state / onboarding if no data exists at all
                     return (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
-                            <BrainCircuit className="w-16 h-16 opacity-20" />
+                        <div className="flex flex-col items-center justify-start h-full text-slate-400 space-y-4 pt-8">
+                            <BrainCircuit className="w-12 h-12 opacity-20" />
                             <div className="text-center">
                                 <p className="text-lg font-medium text-slate-300">Nenhuma Rede PBT Criada</p>
                                 <p className="text-sm text-slate-500 max-w-md mx-auto mt-1">
@@ -223,7 +245,7 @@ export const ClinicalWorkspace: React.FC = () => {
                                 </p>
                             </div>
                             {/* Allow manual creation even without data */}
-                            <div className="w-full h-[600px] mt-8 bg-black border border-slate-800 rounded-xl p-1 relative overflow-hidden">
+                            <div className="w-full flex-1 min-h-[500px] bg-black border border-slate-800 rounded-xl relative">
                                 <PBTGraph nodes={[]} edges={[]} onGraphUpdate={handleGraphUpdate} />
                             </div>
                         </div>
@@ -325,23 +347,25 @@ export const ClinicalWorkspace: React.FC = () => {
     };
 
     return (
-        <div className="h-screen flex bg-white text-gray-900 font-sans selection:bg-blue-100">
-            {/* Sidebar */}
-            <Sidebar
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                isCollapsed={isSidebarCollapsed}
-                onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            />
+        <NavigationProvider activeTab={activeTab} setActiveTab={setActiveTab}>
+            <div className="h-screen flex bg-white text-gray-900 font-sans selection:bg-blue-100">
+                {/* Sidebar */}
+                <Sidebar
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    isCollapsed={isSidebarCollapsed}
+                    onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                />
 
-            {/* Main Content Area */}
-            <main className="flex-1 flex flex-col overflow-hidden relative bg-slate-50 transition-all duration-300">
+                {/* Main Content Area */}
+                <main className="flex-1 flex flex-col overflow-hidden relative bg-slate-50 transition-all duration-300">
 
-                {/* Content Container */}
-                <div className="flex-1 overflow-auto p-6">
-                    {renderContent()}
-                </div>
-            </main>
-        </div>
+                    {/* Content Container */}
+                    <div className="flex-1 overflow-auto p-6">
+                        {renderContent()}
+                    </div>
+                </main>
+            </div>
+        </NavigationProvider>
     );
 };

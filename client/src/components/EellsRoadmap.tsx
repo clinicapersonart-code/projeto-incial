@@ -1,7 +1,8 @@
 import React from 'react';
 import { usePatients } from '../context/PatientContext';
-import { calculateEellsProgress, getNextRecommendedAction } from '../lib/eells-utils';
-import { Check, Circle, Loader2, Target, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { calculateEellsProgress, getNextRecommendedActionWithTab } from '../lib/eells-utils';
+import { Check, Circle, Loader2, Target, CheckCircle, AlertTriangle, XCircle, ArrowRight } from 'lucide-react';
+import { useNavigation, TabId } from '../context/NavigationContext';
 
 const PHASES = [
     { id: 'assessment', label: 'Assessment', shortLabel: 'Coleta' },
@@ -15,11 +16,12 @@ const PHASES = [
 
 export const EellsRoadmap: React.FC = () => {
     const { currentPatient } = usePatients();
+    const { navigateTo } = useNavigation();
 
     if (!currentPatient) return null;
 
     const progress = calculateEellsProgress(currentPatient);
-    const nextAction = getNextRecommendedAction(currentPatient);
+    const { action: nextAction, targetTab } = getNextRecommendedActionWithTab(currentPatient);
 
     // Calcular status de monitoramento
     const getMonitoringStatus = () => {
@@ -188,8 +190,11 @@ export const EellsRoadmap: React.FC = () => {
             </div>
 
             {/* Next Action Card */}
-            <div className="mt-6 bg-white rounded-xl p-4 border-2 border-indigo-200 shadow-md">
-                <div className="flex items-start gap-3">
+            <div
+                onClick={() => targetTab && navigateTo(targetTab as TabId)}
+                className={`mt-6 bg-white rounded-xl p-4 border-2 border-indigo-200 shadow-md transition-all ${targetTab ? 'cursor-pointer hover:border-indigo-400 hover:shadow-lg hover:scale-[1.02]' : ''}`}
+            >
+                <div className="flex items-center gap-3">
                     <div className="p-2 bg-indigo-100 rounded-lg">
                         <Target className="w-5 h-5 text-indigo-600" />
                     </div>
@@ -197,6 +202,11 @@ export const EellsRoadmap: React.FC = () => {
                         <p className="text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1">Próxima Ação Recomendada</p>
                         <p className="text-sm text-gray-800 font-medium">{nextAction}</p>
                     </div>
+                    {targetTab && (
+                        <div className="p-2 bg-indigo-500 rounded-lg text-white">
+                            <ArrowRight className="w-5 h-5" />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

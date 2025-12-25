@@ -15,6 +15,14 @@ const RATES = {
   DEEP: "gemini-pro-latest",             // Raciocínio Profundo para Análise e PBT
 };
 
+// Configurações de segurança para permitir contexto clínico
+const SAFETY_SETTINGS_CLINICAL = [
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+];
+
 const EvidenceSchemaWithSource: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -496,10 +504,11 @@ Classifique se estão "Rígidos" (Problemáticos) ou "Flexíveis" (Saudáveis).
 JSON:
 {
   "active_nodes": [
-    { "label": "Ex: Pensamento Catastrófico", "status": "rigido", "intensity": "alta" },
-    { "label": "Ex: Contato com Valores", "status": "flexivel", "intensity": "media" }
+    { "label": "Ex: Pensamento Catastrófico", "status": "rigido", "intensity": "alta", "category": "Cognitiva" },
+    { "label": "Ex: Contato com Valores", "status": "flexivel", "intensity": "media", "category": "Motivacional" }
   ]
 }
+*Categorias aceitas: Cognitiva, Afetiva, Comportamento, Self, Contexto, Motivacional, Sociocultural, Atencional, Biofisiológica.*
 `;
 
   try {
@@ -1099,6 +1108,436 @@ REGRAS:
     return JSON.parse(result.text || '{}');
   } catch (error) {
     console.error("Error generating treatment plan:", error);
+    throw error;
+  }
+};
+
+// ========================================
+// GERAÇÃO AUTOMÁTICA DE REDE PBT
+// ========================================
+
+/**
+ * Gera NÓS (processos) da rede PBT a partir da anamnese.
+ * Foca em identificar processos psicológicos ativos no paciente.
+ */
+export const generatePBTNodesFromAnamnesis = async (
+  anamnesisData: Record<string, string>,
+  existingNodes: any[] = []
+) => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+  if (!apiKey) throw new Error("Chave de API não encontrada.");
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  // Concatena todos os campos da anamnese
+  const anamnesisText = Object.entries(anamnesisData)
+    .map(([topic, content]) => `## ${topic}\n${content}`)
+    .join('\n\n');
+
+  const existingLabels = existingNodes.map(n => n.label).join(', ');
+
+  const prompt = `
+VOCÊ É: Especialista em Process-Based Therapy (PBT) e Mapeamento de Processos.
+
+ANAMNESE DO PACIENTE:
+${anamnesisText}
+
+${existingLabels ? `NÓS JÁ EXISTENTES (evite duplicar):\n${existingLabels}` : ''}
+
+TAREFA:
+Analise a anamnese e identifique os PROCESSOS PSICOLÓGICOS ativos no paciente.
+
+CATEGORIAS DISPONÍVEIS:
+- Cognitiva (pensamentos, crenças, esquemas)
+- Afetiva (emoções, humor, regulação emocional)
+- Comportamento (ações, hábitos, evitações)
+- Self (identidade, autoestima, autocompaixão)
+- Contexto (ambiente, situações, estressores)
+- Motivacional (valores, metas, propósito)
+- Sociocultural (relacionamentos, cultura, suporte social)
+- Atencional (foco, ruminação, hipervigilância)
+- Biofisiológica (sono, dor, sintomas físicos)
+
+REGRAS:
+1. Extraia entre 5 e 15 processos relevantes
+2. Use nomes curtos e descritivos (max 4 palavras)
+3. Classifique o "change" como:
+   - "aumentou" = Processo que piorou/intensificou
+   - "diminuiu" = Processo que melhorou
+   - "estavel" = Processo crônico/mantido
+   - "novo" = Processo recém-identificado
+4. Não duplique nós existentes
+
+Responda APENAS em JSON:
+{
+  "nodes": [
+    { "id": "node-1", "label": "Ruminação Ansiosa", "category": "Cognitiva", "change": "aumentou" },
+    { "id": "node-2", "label": "Evitação Social", "category": "Comportamento", "change": "estavel" }
+  ]
+}
+`;
+
+  try {
+    const result = await ai.models.generateContent({
+      model: RATES.FAST,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+
+      config: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+        safetySettings: SAFETY_SETTINGS_CLINICAL as any
+      }
+    });
+
+    const parsed = JSON.parse(result.text || '{ "nodes": [] }');
+
+    // Garante IDs únicos
+    return {
+      nodes: parsed.nodes.map((n: any, i: number) => ({
+        ...n,
+        id: n.id || `anamnesis-${Date.now()}-${i}`
+      }))
+    };
+  } catch (error) {
+    console.error("Error generating PBT nodes from anamnesis:", error);
+    throw error;
+  }
+};
+
+/**
+ * Gera CONEXÕES (setas) da rede PBT a partir da conceituação de caso.
+ * Foca em mapear as relações causais/funcionais entre processos.
+ */
+export const generatePBTEdgesFromFormulation = async (
+  formulation: any,
+  existingNodes: any[],
+  existingEdges: any[] = []
+) => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+  if (!apiKey) throw new Error("Chave de API não encontrada.");
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  const nodesList = existingNodes.map(n => `- ${n.id}: ${n.label} (${n.category})`).join('\n');
+  const existingEdgesList = existingEdges.map(e => `${e.source} → ${e.target}`).join(', ');
+
+  const prompt = `
+VOCÊ É: Especialista em Process-Based Therapy (PBT) e Análise Funcional.
+
+CONCEITUAÇÃO DE CASO:
+${JSON.stringify(formulation, null, 2)}
+
+NÓS DISPONÍVEIS (use apenas estes IDs):
+${nodesList}
+
+${existingEdgesList ? `CONEXÕES JÁ EXISTENTES (evite duplicar):\n${existingEdgesList}` : ''}
+
+TAREFA:
+Analise a conceituação e identifique as CONEXÕES CAUSAIS/FUNCIONAIS entre os processos.
+
+REGRAS PARA SETAS:
+1. Use APENAS IDs dos nós listados acima
+2. "weight" pode ser: "fraco", "moderado" ou "forte"
+3. "bidirectional" = true quando há influência mútua (A↔B)
+4. "relation" = rótulo curto explicando a conexão (ex: "Gatilho", "Mantém", "Evita")
+   - Deixe vazio "" se for óbvia
+
+FILOSOFIA PBT:
+- Ordem Temporal: A costuma vir antes de B?
+- Função: A serve de "combustível" para B?
+- Experimento Mental: Se A fosse eliminado, B seria afetado?
+
+Responda APENAS em JSON:
+{
+  "edges": [
+    { "source": "node-1", "target": "node-2", "relation": "Gatilho", "weight": "forte", "bidirectional": false },
+    { "source": "node-3", "target": "node-4", "relation": "", "weight": "moderado", "bidirectional": true }
+  ]
+}
+`;
+
+  try {
+    const result = await ai.models.generateContent({
+      model: RATES.FAST,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+
+      config: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+        safetySettings: SAFETY_SETTINGS_CLINICAL as any
+      }
+    });
+
+    const parsed = JSON.parse(result.text || '{ "edges": [] }');
+
+    // Valida que os IDs existem
+    const validNodeIds = new Set(existingNodes.map(n => n.id));
+    const validEdges = parsed.edges.filter((e: any) =>
+      validNodeIds.has(e.source) && validNodeIds.has(e.target)
+    );
+
+    return { edges: validEdges };
+  } catch (error) {
+    console.error("Error generating PBT edges from formulation:", error);
+    throw error;
+  }
+};
+
+// =============================================
+// INSTRUMENT RECOMMENDATION BASED ON PATIENT DATA
+// =============================================
+
+interface InstrumentRecommendation {
+  instrumentId: string;
+  instrumentName: string;
+  relevanceScore: number; // 1-10
+  rationale: string;
+  priority: 'alta' | 'média' | 'baixa';
+  category: 'monitoramento' | 'avaliação_inicial' | 'processo' | 'desfecho';
+}
+
+interface RecommendationResult {
+  recommendations: InstrumentRecommendation[];
+  summary: string;
+  focusAreas: string[];
+}
+
+const recommendationSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    recommendations: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          instrumentId: { type: Type.STRING, description: "ID do instrumento da biblioteca" },
+          instrumentName: { type: Type.STRING, description: "Nome completo do instrumento" },
+          relevanceScore: { type: Type.NUMBER, description: "Pontuação de relevância de 1 a 10" },
+          rationale: { type: Type.STRING, description: "Justificativa clínica para a recomendação" },
+          priority: { type: Type.STRING, description: "Prioridade: alta, média ou baixa" },
+          category: { type: Type.STRING, description: "Categoria: monitoramento, avaliação_inicial, processo ou desfecho" }
+        },
+        required: ["instrumentId", "instrumentName", "relevanceScore", "rationale", "priority", "category"]
+      }
+    },
+    summary: { type: Type.STRING, description: "Resumo das recomendações e estratégia de monitoramento" },
+    focusAreas: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Áreas de foco identificadas para monitoramento" }
+  },
+  required: ["recommendations", "summary", "focusAreas"]
+};
+
+export const recommendInstruments = async (
+  patientData: {
+    anamnesis?: string;
+    diagnosis?: string;
+    caseFormulation?: any;
+    pbtNetwork?: { nodes: any[]; edges: any[] };
+    eellsData?: any;
+    currentAssessments?: any[];
+  },
+  instrumentsLibrary: Array<{ id: string; name: string; abbreviation: string; description: string; tags: string[]; category: string }>
+): Promise<RecommendationResult> => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+  if (!apiKey) throw new Error("API key not configured");
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  // Preparar contexto do paciente
+  const patientContext = `
+## DADOS DO PACIENTE
+
+### Diagnóstico Principal
+${patientData.diagnosis || 'Não especificado'}
+
+### Anamnese
+${patientData.anamnesis || 'Não disponível'}
+
+### Formulação de Caso
+${patientData.caseFormulation ? JSON.stringify(patientData.caseFormulation, null, 2) : 'Não disponível'}
+
+### Rede PBT (Processos e Mecanismos)
+${patientData.pbtNetwork ? `
+Nós (Processos Identificados):
+${patientData.pbtNetwork.nodes?.map((n: any) => `- ${n.label} (${n.category || 'processo'})`).join('\n') || 'Nenhum'}
+
+Conexões:
+${patientData.pbtNetwork.edges?.map((e: any) => `- ${e.source} → ${e.target} (${e.relation || 'relação'})`).join('\n') || 'Nenhuma'}
+` : 'Não disponível'}
+
+### Dados Eells
+${patientData.eellsData ? `
+Problemas: ${patientData.eellsData.problemList?.map((p: any) => p.problem).join(', ') || 'Nenhum'}
+Crenças Centrais: ${patientData.eellsData.mechanisms?.coreBeliefs?.map((b: any) => b.belief).join(', ') || 'Nenhuma'}
+Metas: ${patientData.eellsData.treatmentPlan?.goals?.map((g: any) => g.description).join(', ') || 'Nenhuma'}
+` : 'Não disponível'}
+
+### Avaliações Já Realizadas
+${patientData.currentAssessments?.map((a: any) => `- ${a.type}: ${a.score} (${a.date})`).join('\n') || 'Nenhuma'}
+`;
+
+  // Preparar lista de instrumentos disponíveis
+  const instrumentsList = instrumentsLibrary.map(i =>
+    `ID: ${i.id} | Nome: ${i.name} (${i.abbreviation}) | Tags: ${i.tags.join(', ')} | Categoria: ${i.category}`
+  ).join('\n');
+
+  const prompt = `Você é um especialista em psicometria e avaliação psicológica clínica. Analise os dados do paciente e recomende os instrumentos de monitoramento mais adequados.
+
+${patientContext}
+
+## BIBLIOTECA DE INSTRUMENTOS DISPONÍVEIS
+${instrumentsList}
+
+## INSTRUÇÃO
+Com base nos dados do paciente (diagnóstico, anamnese, formulação de caso, rede PBT e metas de tratamento), selecione os 5-8 instrumentos MAIS RELEVANTES para este caso específico.
+
+Considere:
+1. **Sintomas principais** identificados na anamnese e diagnóstico
+2. **Processos transdiagnósticos** identificados na rede PBT
+3. **Metas de tratamento** para mensurar progresso
+4. **Evite redundância** - não recomende instrumentos muito similares
+5. **Balance** instrumentos de diferentes categorias (monitoramento contínuo, avaliação inicial, processos, desfecho)
+
+Para cada instrumento, forneça:
+- Uma justificativa clínica específica para ESTE paciente
+- Pontuação de relevância (1-10)
+- Prioridade de implementação
+- Categoria de uso`;
+
+  try {
+    const result = await ai.models.generateContent({
+      model: RATES.FAST,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: recommendationSchema,
+        safetySettings: SAFETY_SETTINGS_CLINICAL as any
+      }
+    });
+
+    const parsed = JSON.parse(result.text || '{ "recommendations": [], "summary": "", "focusAreas": [] }');
+
+    // Ordenar por relevância
+    parsed.recommendations.sort((a: any, b: any) => b.relevanceScore - a.relevanceScore);
+
+    return parsed as RecommendationResult;
+  } catch (error) {
+    console.error("Error recommending instruments:", error);
+    throw error;
+  }
+};
+
+// =============================================
+// LONGITUDINAL MONITORING INSIGHTS (GEMINI PRO)
+// =============================================
+
+interface MonitoringInsights {
+  trendAnalysis: string;
+  patterns: string;
+  treatmentInsights: string;
+  recommendations: string;
+  alertLevel: 'low' | 'medium' | 'high';
+  summary: string;
+}
+
+const monitoringInsightsSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    trendAnalysis: {
+      type: Type.STRING,
+      description: "Análise detalhada da tendência dos scores ao longo do tempo (melhora, piora, estabilidade)"
+    },
+    patterns: {
+      type: Type.STRING,
+      description: "Padrões identificados nas respostas e comportamento dos scores"
+    },
+    treatmentInsights: {
+      type: Type.STRING,
+      description: "Insights sobre a progressão do tratamento baseado nos dados"
+    },
+    recommendations: {
+      type: Type.STRING,
+      description: "Recomendações clínicas baseadas na análise"
+    },
+    alertLevel: {
+      type: Type.STRING,
+      description: "Nível de alerta: low (evolução positiva), medium (atenção), high (intervenção necessária)"
+    },
+    summary: {
+      type: Type.STRING,
+      description: "Resumo executivo da análise em 2-3 frases"
+    }
+  },
+  required: ["trendAnalysis", "patterns", "treatmentInsights", "recommendations", "alertLevel", "summary"]
+};
+
+export const generateMonitoringInsights = async (
+  patient: any,
+  instrumentId: string,
+  assessments: any[]
+): Promise<MonitoringInsights> => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+  if (!apiKey) throw new Error("API key not configured");
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  // Prepare assessment data
+  const assessmentTimeline = assessments
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map((a, idx) => ({
+      aplicacao: idx + 1,
+      data: new Date(a.date).toLocaleDateString('pt-BR'),
+      score: a.score,
+      interpretacao: a.interpretation,
+      respostas: a.answers || {}
+    }));
+
+  const prompt = `Você é um psicólogo clínico especializado em análise longitudinal de dados psicométricos. Analise a evolução das aplicações do instrumento de monitoramento e forneça insights clínicos detalhados.
+
+## PACIENTE
+Nome: ${patient.name}
+Diagnóstico: ${patient.primaryDisorder || 'Não especificado'}
+
+## HISTÓRICO DE APLICAÇÕES DO INSTRUMENTO
+${JSON.stringify(assessmentTimeline, null, 2)}
+
+## CONTEXTO CLÍNICO (SE DISPONÍVEL)
+Anamnese resumida: ${patient.clinicalRecords?.anamnesis?.content?.substring(0, 500) || 'Não disponível'}
+
+## INSTRUÇÃO
+Forneça uma análise longitudinal profunda e clinicamente relevante:
+
+1. **Análise de Tendência**: Descreva a trajetória dos scores ao longo do tempo. Houve melhora, piora ou estabilidade? Calcule a variação percentual e contextualize clinicamente.
+
+2. **Padrões Identificados**: Identifique padrões nas respostas. Há itens específicos que melhoraram/pioraram? Existem flutuações recorrentes?
+
+3. **Insights sobre Tratamento**: Como esses dados se relacionam com a progressão do tratamento? O que sugerem sobre a efetividade das intervenções?
+
+4. **Recomendações**: Baseado nos dados, que ajustes ou intervenções você recomendaria?
+
+5. **Nível de Alerta**: Classifique como:
+   - LOW: Evolução positiva ou estável dentro do esperado
+   - MEDIUM: Algumas flutuações ou estagnação que merecem atenção
+   - HIGH: Piora significativa ou scores preocupantes que requerem intervenção
+
+Seja específico, cite os números, e mantenha o tom profissional mas acessível.`;
+
+  try {
+    // Usando GEMINI PRO (DEEP) para análise mais profunda
+    const result = await ai.models.generateContent({
+      model: RATES.DEEP,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: monitoringInsightsSchema,
+        safetySettings: SAFETY_SETTINGS_CLINICAL as any
+      }
+    });
+
+    const parsed = JSON.parse(result.text || '{}');
+
+    return parsed as MonitoringInsights;
+  } catch (error) {
+    console.error("Error generating monitoring insights:", error);
     throw error;
   }
 };

@@ -26,6 +26,14 @@ export interface ClinicalRecords {
         content: string; // HTML/Rich text or Markdown
         history: string[];
         updatedAt: string;
+        structured?: {
+            content: Record<number, string>;
+            updatedAt: string;
+        };
+        ebp?: {
+            content: Record<number, string>;
+            updatedAt: string;
+        };
     };
     caseFormulation: {
         content: string;

@@ -14,10 +14,11 @@ import {
     LogOut,
     FileUser,
     ChevronDown,
-    ChevronRight
+    ChevronRight,
+    Library
 } from 'lucide-react';
 
-type TabType = 'dashboard' | 'soap' | 'network' | 'plan' | 'forms' | 'anamnesis' | 'formulation' | 'curation' | 'evolution' | 'alchemy' | 'copilot' | 'eells' | 'prontuario';
+type TabType = 'dashboard' | 'soap' | 'network' | 'plan' | 'forms' | 'anamnesis' | 'formulation' | 'curation' | 'evolution' | 'alchemy' | 'copilot' | 'eells' | 'prontuario' | 'library';
 
 export interface SidebarProps {
     activeTab: TabType;

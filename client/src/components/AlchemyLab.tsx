@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePatients } from '../context/PatientContext';
 import { Upload, FileText, Sparkles, ArrowRight, BookOpen } from 'lucide-react';
 import { adaptProtocol } from '../lib/gemini';
+import { aggregateAnamnesisData } from '../lib/anamnesis-utils';
 
 export const AlchemyLab: React.FC = () => {
     const { currentPatient } = usePatients();
@@ -16,7 +17,7 @@ export const AlchemyLab: React.FC = () => {
             const patientContext = `
                 Nome: ${currentPatient.name}
                 Diagnóstico: ${currentPatient.clinicalRecords.caseFormulation.eells?.diagnosis || "Não informado"}
-                História: ${currentPatient.clinicalRecords.anamnesis.content || "Não informada"}
+                História: ${aggregateAnamnesisData(currentPatient)}
             `;
             const result = await adaptProtocol(protocolText, patientContext);
             setAdaptedPlan(result);

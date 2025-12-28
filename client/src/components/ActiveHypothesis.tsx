@@ -25,15 +25,24 @@ interface ActiveHypothesisProps {
 export const ActiveHypothesis: React.FC<ActiveHypothesisProps> = ({ onOpenDecisionLog }) => {
     const { currentPatient } = usePatients();
 
+    // Interface para efeito observado
+    interface ObservedEffect {
+        instrumentName: string;
+        scoreBefore: number;
+        scoreAfter: number;
+        delta: number;
+        daysBetween: number;
+    }
+
     // Buscar a decisão ativa e verificar se há dados suficientes
-    const { activeDecision, hasRecentData, daysSinceLastData } = useMemo(() => {
-        if (!currentPatient) return { activeDecision: null, hasRecentData: false, daysSinceLastData: null };
+    const { activeDecision, hasRecentData, daysSinceLastData, observedEffects } = useMemo(() => {
+        if (!currentPatient) return { activeDecision: null, hasRecentData: false, daysSinceLastData: null, observedEffects: [] };
 
         const eellsData = (currentPatient as any).eellsData;
         const logs: DecisionLog[] = eellsData?.monitoring?.decisionLogs || [];
         const records: InstrumentRecord[] = eellsData?.monitoring?.instrumentRecords || [];
 
-        if (logs.length === 0) return { activeDecision: null, hasRecentData: false, daysSinceLastData: null };
+        if (logs.length === 0) return { activeDecision: null, hasRecentData: false, daysSinceLastData: null, observedEffects: [] };
 
         const now = new Date();
         const thirtyDaysAgo = new Date();
@@ -53,6 +62,7 @@ export const ActiveHypothesis: React.FC<ActiveHypothesisProps> = ({ onOpenDecisi
         // Verificar se há dados recentes (desde a decisão)
         let hasRecentData = false;
         let daysSinceLastData: number | null = null;
+        let observedEffects: ObservedEffect[] = [];
 
         if (activeDecision) {
             const decisionDate = new Date(activeDecision.date);
@@ -60,6 +70,43 @@ export const ActiveHypothesis: React.FC<ActiveHypothesisProps> = ({ onOpenDecisi
             // Buscar instrumentos aplicados desde a decisão
             const recentRecords = records.filter(r => new Date(r.date) >= decisionDate);
             hasRecentData = recentRecords.length > 0;
+
+            // Calcular efeito observado por instrumento
+            if (hasRecentData) {
+                // Agrupar por instrumento
+                const byInstrument = records.reduce((acc, r) => {
+                    if (!acc[r.instrumentName]) acc[r.instrumentName] = [];
+                    acc[r.instrumentName].push(r);
+                    return acc;
+                }, {} as Record<string, InstrumentRecord[]>);
+
+                // Para cada instrumento, comparar score antes vs depois da decisão
+                Object.entries(byInstrument).forEach(([name, recs]) => {
+                    const sorted = recs
+                        .filter(r => r.score !== null)
+                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                    // Encontrar último score ANTES da decisão
+                    const beforeDecision = sorted.filter(r => new Date(r.date) < decisionDate);
+                    const afterDecision = sorted.filter(r => new Date(r.date) >= decisionDate);
+
+                    if (beforeDecision.length > 0 && afterDecision.length > 0) {
+                        const scoreBefore = beforeDecision[beforeDecision.length - 1].score!;
+                        const scoreAfter = afterDecision[afterDecision.length - 1].score!;
+                        const dateBefore = new Date(beforeDecision[beforeDecision.length - 1].date);
+                        const dateAfter = new Date(afterDecision[afterDecision.length - 1].date);
+                        const daysBetween = Math.ceil((dateAfter.getTime() - dateBefore.getTime()) / (1000 * 60 * 60 * 24));
+
+                        observedEffects.push({
+                            instrumentName: name,
+                            scoreBefore,
+                            scoreAfter,
+                            delta: scoreAfter - scoreBefore,
+                            daysBetween
+                        });
+                    }
+                });
+            }
 
             // Se não há dados recentes, calcular há quantos dias
             if (!hasRecentData && records.length > 0) {
@@ -72,7 +119,7 @@ export const ActiveHypothesis: React.FC<ActiveHypothesisProps> = ({ onOpenDecisi
             }
         }
 
-        return { activeDecision, hasRecentData, daysSinceLastData };
+        return { activeDecision, hasRecentData, daysSinceLastData, observedEffects };
     }, [currentPatient]);
 
     if (!currentPatient || !activeDecision) {
@@ -130,8 +177,8 @@ export const ActiveHypothesis: React.FC<ActiveHypothesisProps> = ({ onOpenDecisi
                                 <button
                                     onClick={onOpenDecisionLog}
                                     className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isPastFollowUp
-                                            ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                                            : 'bg-gray-600 hover:bg-gray-700 text-white'
+                                        ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                                        : 'bg-gray-600 hover:bg-gray-700 text-white'
                                         }`}
                                 >
                                     <Edit3 className="w-3 h-3" />
@@ -173,6 +220,39 @@ export const ActiveHypothesis: React.FC<ActiveHypothesisProps> = ({ onOpenDecisi
                                             (até {followUpDate.toLocaleDateString('pt-BR')})
                                         </span>
                                     )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Efeito Observado - Mini-laboratório */}
+                        {observedEffects.length > 0 && (
+                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                <p className="text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-1">
+                                    <FlaskConical className="w-3 h-3" />
+                                    Efeito Observado
+                                </p>
+                                <div className="space-y-1">
+                                    {observedEffects.map((effect, idx) => (
+                                        <div key={idx} className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-700">{effect.instrumentName}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-gray-500">
+                                                    {effect.scoreBefore} → {effect.scoreAfter}
+                                                </span>
+                                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${effect.delta < 0
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : effect.delta > 0
+                                                            ? 'bg-red-100 text-red-700'
+                                                            : 'bg-gray-100 text-gray-600'
+                                                    }`}>
+                                                    {effect.delta > 0 ? '+' : ''}{effect.delta} pts
+                                                </span>
+                                                <span className="text-xs text-gray-400">
+                                                    em {effect.daysBetween}d
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}

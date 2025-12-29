@@ -40,7 +40,10 @@ export interface Patient {
             totalSessions: number;
             usedSessions: number;
             packageValue: number;
+            startDate?: string;        // Início do pacote atual
+            paymentDate?: string;      // Data do pagamento
             expiresAt?: string;
+            history?: PackageHistoryEntry[];  // Histórico de pacotes anteriores
         };
     };
     // Payment history
@@ -59,6 +62,17 @@ export interface Patient {
     eellsData?: EellsData;
 }
 
+// Package history entry for tracking previous packages
+export interface PackageHistoryEntry {
+    id: string;
+    startDate: string;
+    endDate: string;
+    sessionsUsed: number;
+    totalSessions: number;
+    amountPaid: number;
+    paymentDate: string;
+}
+
 // Scheduled session with attendance tracking
 export interface ScheduledSession {
     id: string;
@@ -70,6 +84,8 @@ export interface ScheduledSession {
     paymentId?: string; // Link to payment record
     notes?: string;
     absenceReason?: string;
+    chargedToPackage?: boolean;     // Se a sessão foi cobrada do pacote
+    cancelledWithin24h?: boolean;   // Se cancelou com menos de 24h
 }
 
 // Financial payment record

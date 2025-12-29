@@ -433,6 +433,109 @@ export const PaymentHistory: React.FC = () => {
                 </div>
             )}
 
+            {/* Pacote Mensal Status */}
+            {billing?.paymentType === 'particular' && billing?.particularMode === 'mensal' && billing?.package && (
+                <div className={`rounded-xl border-2 p-4 ${billing.package.usedSessions >= billing.package.totalSessions
+                        ? 'bg-red-50 border-red-200'
+                        : billing.package.usedSessions >= billing.package.totalSessions - 1
+                            ? 'bg-amber-50 border-amber-200'
+                            : 'bg-emerald-50 border-emerald-200'
+                    }`}>
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div className="flex items-center gap-3">
+                            <span className="text-3xl">📦</span>
+                            <div>
+                                <p className="font-bold text-gray-800">Pacote Mensal</p>
+                                <p className="text-sm text-gray-600">
+                                    {billing.package.paymentDate && (
+                                        <>Pago em {formatDate(billing.package.paymentDate)} • </>
+                                    )}
+                                    {formatCurrency(billing.package.packageValue || sessionValue)}/mês
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                            <div className="text-center">
+                                <p className="text-xs text-gray-600">Usadas</p>
+                                <p className={`text-2xl font-bold ${billing.package.usedSessions >= billing.package.totalSessions
+                                        ? 'text-red-700'
+                                        : billing.package.usedSessions >= billing.package.totalSessions - 1
+                                            ? 'text-amber-700'
+                                            : 'text-emerald-700'
+                                    }`}>
+                                    {billing.package.usedSessions}/{billing.package.totalSessions}
+                                </p>
+                            </div>
+                            <div className="text-center border-l border-gray-300 pl-4">
+                                <p className="text-xs text-gray-600">Restam</p>
+                                <p className="text-2xl font-bold text-gray-800">
+                                    {billing.package.totalSessions - billing.package.usedSessions}
+                                    {billing.package.usedSessions >= billing.package.totalSessions - 1 && ' ⚠️'}
+                                </p>
+                            </div>
+                            {billing.package.usedSessions >= billing.package.totalSessions && (
+                                <button
+                                    onClick={() => {
+                                        if (!currentPatient || !currentPatient.billing?.package) return;
+                                        // Arquivar pacote atual no histórico
+                                        const currentPackage = currentPatient.billing.package;
+                                        const historyEntry = {
+                                            id: crypto.randomUUID(),
+                                            startDate: currentPackage.startDate || new Date().toISOString(),
+                                            endDate: new Date().toISOString(),
+                                            sessionsUsed: currentPackage.usedSessions,
+                                            totalSessions: currentPackage.totalSessions,
+                                            amountPaid: currentPackage.packageValue || sessionValue,
+                                            paymentDate: currentPackage.paymentDate || new Date().toISOString()
+                                        };
+                                        // Criar novo pacote zerado
+                                        const newPackage = {
+                                            ...currentPackage,
+                                            usedSessions: 0,
+                                            startDate: new Date().toISOString(),
+                                            paymentDate: '', // Aguardando novo pagamento
+                                            history: [...(currentPackage.history || []), historyEntry]
+                                        };
+                                        updatePatient({
+                                            ...currentPatient,
+                                            billing: {
+                                                ...currentPatient.billing,
+                                                package: newPackage
+                                            }
+                                        });
+                                    }}
+                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold transition-all"
+                                >
+                                    🔄 Renovar Pacote
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Histórico de Pacotes */}
+                    {billing.package.history && billing.package.history.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                            <p className="font-semibold text-gray-700 mb-2">📋 Histórico de Pacotes</p>
+                            <div className="space-y-2">
+                                {billing.package.history.slice(-3).reverse().map((pkg: any) => (
+                                    <div key={pkg.id} className="flex items-center justify-between bg-white/60 rounded-lg p-2 text-sm">
+                                        <span className="text-gray-600">
+                                            {formatDate(pkg.startDate)} → {formatDate(pkg.endDate)}
+                                        </span>
+                                        <span className="font-medium text-gray-800">
+                                            {pkg.sessionsUsed}/{pkg.totalSessions} sessões
+                                        </span>
+                                        <span className="text-emerald-700 font-semibold">
+                                            {formatCurrency(pkg.amountPaid)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl border-2 border-gray-100 p-4">

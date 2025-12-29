@@ -2,11 +2,11 @@
 
 ## 🔜 Próximas Tarefas (27/12/2024)
 
-### 1. 🔍 Vertex AI / Grounding
-- [ ] Integrar Google Search Grounding no Deep Research
-- [ ] Permitir busca atualizada de protocolos e guidelines na web
-- [ ] Retornar links e fontes verificáveis
-- [ ] Configurar credenciais Vertex AI
+### 1. 🔍 Vertex AI / Grounding ✅
+- [x] Integrar Google Search Grounding no Deep Research
+- [x] Permitir busca atualizada de protocolos e guidelines na web
+- [x] Retornar links e fontes verificáveis
+- [ ] Configurar credenciais Vertex AI (opcional - grounding funciona com API padrão)
 
 ### 2. 🎤 Botão de Voz no Chat (Visão Geral do Paciente) ✅
 - [x] Adicionar input de voz no chat da **Visão Geral** (PatientDashboard)

@@ -20,6 +20,8 @@ interface EditBillingDialogProps {
             totalSessions: number;
             usedSessions: number;
             packageValue: number;
+            paymentDate?: string;
+            startDate?: string;
             expiresAt?: string;
         };
     };
@@ -54,10 +56,11 @@ export const EditBillingDialog: React.FC<EditBillingDialogProps> = ({
     const [insuranceName, setInsuranceName] = useState('');
     const [insurancePlanCode, setInsurancePlanCode] = useState('');
     const [reimbursementDays, setReimbursementDays] = useState(60);
-    const [totalSessions, setTotalSessions] = useState(8);
+    const [totalSessions, setTotalSessions] = useState(4); // Pacote padrão de 4 sessões
     const [usedSessions, setUsedSessions] = useState(0);
-    const [packageValue, setPackageValue] = useState(1400);
+    const [packageValue, setPackageValue] = useState(400); // Valor mensal padrão
     const [customInsuranceValue, setCustomInsuranceValue] = useState(0);
+    const [packagePaymentDate, setPackagePaymentDate] = useState(''); // Data do pagamento do pacote
 
     useEffect(() => {
         if (currentBilling) {
@@ -75,9 +78,10 @@ export const EditBillingDialog: React.FC<EditBillingDialogProps> = ({
                 }
             }
             if (currentBilling.package) {
-                setTotalSessions(currentBilling.package.totalSessions);
-                setUsedSessions(currentBilling.package.usedSessions);
-                setPackageValue(currentBilling.package.packageValue);
+                setTotalSessions(currentBilling.package.totalSessions || 4);
+                setUsedSessions(currentBilling.package.usedSessions || 0);
+                setPackageValue(currentBilling.package.packageValue || 400);
+                setPackagePaymentDate(currentBilling.package.paymentDate || '');
             }
         } else {
             // Reset to defaults
@@ -128,11 +132,14 @@ export const EditBillingDialog: React.FC<EditBillingDialogProps> = ({
             };
         }
 
-        if (paymentType === 'pacote') {
+        // Salvar pacote para modo pacote OU particular mensal
+        if (paymentType === 'pacote' || (paymentType === 'particular' && particularMode === 'mensal')) {
             billing.package = {
                 totalSessions,
                 usedSessions,
-                packageValue
+                packageValue: paymentType === 'particular' ? sessionValue : packageValue,
+                paymentDate: packagePaymentDate || undefined,
+                startDate: packagePaymentDate || new Date().toISOString()
             };
         }
 
@@ -275,6 +282,73 @@ export const EditBillingDialog: React.FC<EditBillingDialogProps> = ({
                                     Altere aqui para cobrar valor diferente deste paciente
                                 </p>
                             </div>
+
+                            {/* Controle de Pacote Mensal (4 sessões) */}
+                            {particularMode === 'mensal' && (
+                                <div className="bg-emerald-100 rounded-xl p-4 space-y-4 border border-emerald-200">
+                                    <h4 className="font-bold text-emerald-800 flex items-center gap-2">
+                                        📦 Pacote Mensal (4 sessões)
+                                    </h4>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-emerald-700 mb-2">
+                                                Sessões do Pacote
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={totalSessions}
+                                                onChange={(e) => setTotalSessions(Number(e.target.value))}
+                                                className="w-full border-2 border-emerald-200 rounded-xl p-3 focus:outline-none focus:border-emerald-400 bg-white"
+                                                min={1}
+                                                max={12}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-emerald-700 mb-2">
+                                                Sessões Usadas
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={usedSessions}
+                                                onChange={(e) => setUsedSessions(Number(e.target.value))}
+                                                className="w-full border-2 border-emerald-200 rounded-xl p-3 focus:outline-none focus:border-emerald-400 bg-white"
+                                                min={0}
+                                                max={totalSessions}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-emerald-700 mb-2">
+                                            Data do Pagamento
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={packagePaymentDate}
+                                            onChange={(e) => setPackagePaymentDate(e.target.value)}
+                                            className="w-full border-2 border-emerald-200 rounded-xl p-3 focus:outline-none focus:border-emerald-400 bg-white"
+                                        />
+                                    </div>
+
+                                    {/* Resumo */}
+                                    <div className="bg-emerald-200/50 rounded-lg p-3 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-emerald-700">Restam</p>
+                                            <p className={`text-xl font-bold ${totalSessions - usedSessions <= 1 ? 'text-amber-600' : 'text-emerald-800'}`}>
+                                                {totalSessions - usedSessions} sessões
+                                                {totalSessions - usedSessions <= 1 && ' ⚠️'}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm text-emerald-700">Valor/Sessão</p>
+                                            <p className="text-lg font-bold text-emerald-800">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sessionValue / totalSessions)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

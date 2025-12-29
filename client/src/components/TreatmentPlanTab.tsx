@@ -100,17 +100,45 @@ export const TreatmentPlanTab: React.FC = () => {
         if (!currentPatient) return;
         setIsSearchingProtocols(true);
         try {
+            // Coletar dados ricos do paciente
+            const eellsData = (currentPatient as any).eellsData || {};
+            const clinicalRecords = currentPatient.clinicalRecords || {};
+
+            // Extrair anamnese resumida
+            const anamneseContent = clinicalRecords.anamnesis?.content || '';
+            const anamneseSummary = anamneseContent.length > 500
+                ? anamneseContent.substring(0, 500) + '...'
+                : anamneseContent;
+
+            // Extrair mecanismos
+            const mechanisms = eellsData.mechanisms || {};
+            const mechanismsSummary = [
+                mechanisms.precipitants?.length ? `Precipitantes: ${mechanisms.precipitants.join(', ')}` : '',
+                mechanisms.maintainingProcesses?.length ? `Mantenedores: ${mechanisms.maintainingProcesses.join(', ')}` : '',
+                mechanisms.coreBelief ? `Crença central: ${mechanisms.coreBelief}` : ''
+            ].filter(Boolean).join('. ');
+
+            // Extrair formulação
+            const formulationNarrative = eellsData.formulation?.narrative || '';
+
             const recommendations = await recommendProtocols({
                 name: currentPatient.name,
-                primaryDiagnosis: (currentPatient as any).primaryDiagnosis,
+                primaryDiagnosis: (currentPatient as any).primaryDiagnosis || currentPatient.primaryDisorder,
                 comorbidities: (currentPatient as any).comorbidities,
-                presentingProblems: (currentPatient as any).eellsData?.problemList?.map((p: any) => p.problem),
+                presentingProblems: eellsData.problemList?.map((p: any) => p.description || p.problem),
+                preferences: `
+                    ANAMNESE: ${anamneseSummary}
+                    
+                    MECANISMOS: ${mechanismsSummary}
+                    
+                    FORMULAÇÃO: ${formulationNarrative}
+                `
             });
             setProtocolRecommendations(recommendations);
             setShowRecommendationsModal(true);
         } catch (error) {
             console.error('Error:', error);
-            alert('Erro na busca.');
+            alert('Erro na busca. Verifique o console para detalhes.');
         } finally {
             setIsSearchingProtocols(false);
         }
@@ -529,10 +557,39 @@ export const TreatmentPlanTab: React.FC = () => {
                                 <h3 className="font-bold text-amber-800 mb-2">💡 Recomendação Geral</h3>
                                 <p className="text-gray-700">{protocolRecommendations.summaryRecommendation}</p>
                             </section>
+
+                            {/* Fontes do Google Search Grounding */}
+                            {protocolRecommendations.searchSources && protocolRecommendations.searchSources.length > 0 && (
+                                <section className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h3 className="font-bold text-blue-800 mb-2">🔗 Fontes Consultadas (Google Search)</h3>
+                                    <div className="space-y-2">
+                                        {protocolRecommendations.searchSources.map((source: any, idx: number) => (
+                                            <a
+                                                key={idx}
+                                                href={source.uri}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="block text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                                            >
+                                                {source.title || source.uri}
+                                            </a>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
                         </div>
+
+                        {/* Aviso sobre PDF */}
+                        <div className="px-4 py-3 bg-blue-50 border-t border-blue-100">
+                            <p className="text-sm text-blue-700">
+                                💡 <strong>Dica:</strong> Para um plano mais detalhado, faça upload do PDF/manual do protocolo recomendado.
+                                O Deep Research identifica o melhor protocolo, mas o conteúdo completo está nos manuais originais.
+                            </p>
+                        </div>
+
                         <div className="p-4 border-t flex justify-end gap-3">
                             <button onClick={() => setShowRecommendationsModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Fechar</button>
-                            <button onClick={() => setShowRecommendationsModal(false)} className="px-4 py-2 bg-amber-500 text-white rounded-lg font-semibold">Usar na Análise</button>
+                            <button onClick={() => setShowRecommendationsModal(false)} className="px-4 py-2 bg-amber-500 text-white rounded-lg font-semibold">OK, Entendi</button>
                         </div>
                     </div>
                 </div>
@@ -564,8 +621,8 @@ export const TreatmentPlanTab: React.FC = () => {
                                             setRevisionReason('');
                                         }}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedQuickReason === reason
-                                                ? 'bg-teal-600 text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ? 'bg-teal-600 text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
                                     >
                                         {reason}
@@ -607,8 +664,8 @@ export const TreatmentPlanTab: React.FC = () => {
                                         key={opt.value}
                                         onClick={() => setRevisionChangeType(opt.value as any)}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium ${revisionChangeType === opt.value
-                                                ? 'bg-indigo-600 text-white'
-                                                : 'bg-gray-100 text-gray-700'
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-gray-100 text-gray-700'
                                             }`}
                                     >
                                         {opt.label}

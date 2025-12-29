@@ -2098,52 +2098,114 @@ export const recommendProtocols = async (patientContext: {
     required: ["triadAnalysis", "recommendations", "summaryRecommendation"]
   };
 
-  const prompt = `Você é um consultor de Prática Baseada em Evidências (PBE) em psicoterapia, especializado em identificar os melhores protocolos e guidelines para cada paciente.
+  const prompt = `You are an Evidence-Based Practice (EBP) consultant in psychotherapy, specialized in identifying the best protocols and guidelines for each patient.
 
-**TRÍADE DA PBE:**
-1. **Melhor Evidência Disponível**: Pesquise protocolos com forte suporte empírico
-2. **Expertise Clínica**: Considere aplicabilidade prática e adaptações necessárias
-3. **Contexto do Paciente**: Preferências, valores, recursos e características únicas
+**IMPORTANT: Search in ENGLISH for scientific literature, as most evidence-based protocols are published in English. Then provide your response in Portuguese (Brazilian).**
 
-**PERFIL DO PACIENTE:**
-- Nome: ${patientContext.name}
-- Diagnóstico Principal: ${patientContext.primaryDiagnosis || 'Não especificado'}
-- Comorbidades: ${patientContext.comorbidities?.join(', ') || 'Nenhuma identificada'}
-- Idade: ${patientContext.age || 'Não informada'}
-- Problemas Apresentados: ${patientContext.presentingProblems?.join(', ') || 'Não especificados'}
-- Tratamentos Anteriores: ${patientContext.previousTreatments?.join(', ') || 'Nenhum relatado'}
-- Preferências/Contexto: ${patientContext.preferences || 'Não informado'}
+**EBP TRIAD:**
+1. **Best Available Evidence**: Search for protocols with strong empirical support (RCTs, meta-analyses, Cochrane reviews)
+2. **Clinical Expertise**: Consider practical applicability and necessary adaptations
+3. **Patient Context**: Preferences, values, resources and unique characteristics
 
-**TAREFA:**
-Realize uma busca profunda e recomende 3-5 protocolos/guidelines mais adequados para este paciente.
+**PATIENT PROFILE:**
+- Name: ${patientContext.name}
+- Primary Diagnosis: ${patientContext.primaryDiagnosis || 'Not specified'}
+- Comorbidities: ${patientContext.comorbidities?.join(', ') || 'None identified'}
+- Age: ${patientContext.age || 'Not informed'}
+- Presenting Problems: ${patientContext.presentingProblems?.join(', ') || 'Not specified'}
+- Previous Treatments: ${patientContext.previousTreatments?.join(', ') || 'None reported'}
+- Preferences/Context: ${patientContext.preferences || 'Not informed'}
 
-Para cada protocolo, forneça:
-1. Nome completo do protocolo
-2. Autores principais
-3. Nível de evidência (forte/moderado/emergente)
-4. Por que é indicado para ESTE paciente especificamente
-5. Componentes-chave do tratamento
-6. Duração estimada
-7. Referência bibliográfica
+**TASK:**
+Perform a deep search and recommend 3-5 protocols/guidelines most suitable for this patient.
 
-**PRIORIZE:**
-- Protocolos transdiagnósticos quando apropriado (UP, PBT)
-- Protocolos específicos para diagnóstico principal
-- Evidências recentes (últimos 10 anos)
-- Manuais disponíveis em português ou inglês`;
+For each protocol, provide:
+1. Full protocol name (in English)
+2. Main authors
+3. Evidence level (strong/moderate/emerging)
+4. Why it is indicated for THIS specific patient (in Portuguese)
+5. Key treatment components
+6. Estimated duration
+7. Bibliographic reference (APA format)
+
+**PRIORITIZE:**
+- Transdiagnostic protocols when appropriate (UP, PBT, ACT, MBCT)
+- Diagnosis-specific gold-standard protocols
+- Recent evidence (last 10 years)
+- Cochrane reviews and meta-analyses
+- NICE/APA guidelines
+
+**DATABASES TO SEARCH:** PubMed, APA PsycInfo, Cochrane Library, NICE Guidelines
+
+**IMPORTANT:** You have access to Google Search. Use it to find the most recent evidence and cite real sources. Search terms should be in ENGLISH.
+
+**OUTPUT FORMAT:** Return your response as a valid JSON object with this structure:
+{
+  "triadAnalysis": {
+    "evidenceConsiderations": "string",
+    "expertiseConsiderations": "string", 
+    "patientContextConsiderations": "string"
+  },
+  "recommendations": [
+    {
+      "protocolName": "string",
+      "authors": "string",
+      "evidenceLevel": "forte|moderado|emergente",
+      "indicationRationale": "string em português",
+      "keyComponents": ["string"],
+      "estimatedDuration": "string",
+      "reference": "string APA format"
+    }
+  ],
+  "summaryRecommendation": "string em português"
+}`;
 
   try {
     const result = await genAI.models.generateContent({
       model: RATES.DEEP,
       contents: prompt,
       config: {
-        responseMimeType: "application/json",
-        responseSchema: protocolSchema,
-        safetySettings: SAFETY_SETTINGS_CLINICAL as any
+        safetySettings: SAFETY_SETTINGS_CLINICAL as any,
+        // Habilita Google Search Grounding para buscar evidências em tempo real
+        tools: [{ googleSearch: {} }]
       }
     });
 
-    return JSON.parse(result.text || '{}');
+    // Extrair groundingMetadata se disponível
+    const response = result;
+    const groundingMetadata = (response as any).candidates?.[0]?.groundingMetadata;
+
+    // Parsear JSON da resposta (pode estar envolvido em ```json```)
+    let textResult = result.text || '{}';
+    // Remover markdown code blocks se existir
+    textResult = textResult.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(textResult);
+    } catch {
+      // Se falhar o parse, criar estrutura mínima
+      parsed = {
+        triadAnalysis: { evidenceConsiderations: textResult, expertiseConsiderations: '', patientContextConsiderations: '' },
+        recommendations: [],
+        summaryRecommendation: 'Não foi possível parsear a resposta. Veja o texto acima.'
+      };
+    }
+
+    // Adicionar fontes do grounding se disponíveis
+    if (groundingMetadata?.groundingChunks) {
+      parsed.searchSources = groundingMetadata.groundingChunks.map((chunk: any) => ({
+        title: chunk.web?.title || 'Fonte',
+        uri: chunk.web?.uri || ''
+      }));
+    }
+
+    // Também verificar searchEntryPoint para fontes
+    if (groundingMetadata?.searchEntryPoint?.renderedContent) {
+      parsed.searchRenderedContent = groundingMetadata.searchEntryPoint.renderedContent;
+    }
+
+    return parsed;
   } catch (error) {
     console.error("Error recommending protocols:", error);
     throw error;

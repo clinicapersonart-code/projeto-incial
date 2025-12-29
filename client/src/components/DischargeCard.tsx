@@ -373,7 +373,9 @@ export const DischargeCard: React.FC = () => {
     if (!currentPatient) return null;
 
     const data = dischargeData || initializeDischargeData();
-    const { status, percent } = calculateStatus(data.readiness.criteria);
+    const { status, percent } = calculateStatus(data);
+    const validation = calculateValidation(data);
+    const currentStatus = status;
 
     // Cores do status
     const statusColors = {
@@ -412,7 +414,57 @@ export const DischargeCard: React.FC = () => {
                         style={{ width: `${percent}%` }}
                     />
                 </div>
+
+                {/* Botão Alta Realizada */}
+                {currentStatus !== 'alta_realizada' && (
+                    <button
+                        onClick={() => {
+                            if (validation.canMarkAsRealized) {
+                                const updated = { ...data };
+                                updated.readiness.overallStatus = 'alta_realizada';
+                                updated.dischargeDate = new Date().toISOString();
+                                updated.lastUpdated = new Date().toISOString();
+                                // Adicionar ao histórico
+                                updated.history = [...(updated.history || []), {
+                                    id: crypto.randomUUID(),
+                                    date: new Date().toISOString(),
+                                    changeType: 'discharge_complete' as const,
+                                    description: 'Alta terapêutica realizada',
+                                    snapshot: {
+                                        percentMet: percent,
+                                        criteriaMetCount: data.readiness.criteria.filter(c => c.status === 'met').length,
+                                        criteriaTotalCount: data.readiness.criteria.length,
+                                        warningSignsCount: data.relapsePrevention.warningSigns.length,
+                                        copingStrategiesCount: data.relapsePrevention.copingStrategies.length,
+                                        status: 'alta_realizada' as const
+                                    }
+                                }];
+                                saveDischargeData(updated);
+                            }
+                        }}
+                        disabled={!validation.canMarkAsRealized}
+                        className={`text-xs px-3 py-1 rounded-lg transition-colors ${validation.canMarkAsRealized
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            }`}
+                        title={validation.canMarkAsRealized ? 'Marcar alta realizada' : `Falta: ${validation.missingItems.join(', ')}`}
+                    >
+                        {validation.canMarkAsRealized ? '✓ Marcar Alta' : '🔒 Bloqueado'}
+                    </button>
+                )}
             </div>
+
+            {/* Aviso do que falta */}
+            {!validation.canMarkAsRealized && validation.missingItems.length > 0 && (
+                <div className="mx-4 mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-700 font-medium">⚠️ Para liberar a alta:</p>
+                    <ul className="text-xs text-amber-600 mt-1 space-y-0.5">
+                        {validation.missingItems.map((item, idx) => (
+                            <li key={idx}>• {item}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             {/* Tabs */}
             <div className="flex border-b border-gray-100 overflow-x-auto">

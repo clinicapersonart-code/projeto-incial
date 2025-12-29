@@ -141,8 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isColl
             items: [
                 { id: 'prontuario', label: 'Fichas de Evolução', icon: BookOpen },
                 { id: 'evolution', label: 'Progresso', icon: TrendingUp },
-                { id: 'forms', label: 'Monitoramento', icon: ClipboardList },
-                { id: 'financeiro', label: 'Financeiro', icon: DollarSign }
+                { id: 'forms', label: 'Monitoramento', icon: ClipboardList }
             ]
         }
     ];
@@ -181,6 +180,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isColl
                                         currentPatient.billing.paymentType === 'convenio' ? currentPatient.billing.insurance?.name : 'Pacote'}
                                     {' • '}{formatCurrency(currentPatient.billing.sessionValue)}
                                 </p>
+                            )}
+                            {/* Badge de Pacote Mensal */}
+                            {currentPatient?.billing?.particularMode === 'mensal' && currentPatient?.billing?.package && (
+                                <div className={`text-xs mt-1 px-2 py-1 rounded-lg inline-flex items-center gap-1 ${currentPatient.billing.package.usedSessions >= currentPatient.billing.package.totalSessions - 1
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                    : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                                    }`}>
+                                    📦 {currentPatient.billing.package.usedSessions}/{currentPatient.billing.package.totalSessions}
+                                    {currentPatient.billing.package.paymentDate && (
+                                        <span className="text-gray-400">
+                                            | Pago {new Date(currentPatient.billing.package.paymentDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                        </span>
+                                    )}
+                                    {currentPatient.billing.package.usedSessions >= currentPatient.billing.package.totalSessions - 1 && (
+                                        <span className="ml-1">⚠️</span>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}

@@ -12,6 +12,7 @@ import { ProgressChart } from './ProgressChart';
 import { DecisionLogCard } from './DecisionLogCard';
 import { ActiveHypothesis } from './ActiveHypothesis';
 import { DischargeCard } from './DischargeCard';
+import { DischargeReport } from './DischargeReport';
 import { Send, Loader2, Bot, History, BrainCircuit, ChevronRight, ChevronLeft, MessageCircle, Mic, MicOff } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -283,6 +284,9 @@ RELATO BRUTO: ${s.notes}
 
                     {/* LINHA 2.7: Alta e Prevenção de Recaída */}
                     <DischargeCard />
+
+                    {/* LINHA 2.8: Relatório de Alta */}
+                    <DischargeReport />
 
                     {/* LINHA 3: Rede PBT (Com altura garantida) */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col relative overflow-hidden min-h-[500px]">

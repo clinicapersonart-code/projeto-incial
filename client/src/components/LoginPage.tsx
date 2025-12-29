@@ -31,8 +31,8 @@ export const LoginPage: React.FC = () => {
             <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-10 shadow-2xl border border-white/20 max-w-md w-full mx-4">
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
-                        <span className="text-3xl font-bold text-white">P</span>
+                    <div className="w-24 h-24 mx-auto mb-4">
+                        <img src="/logo.png" alt="PsicoHub" className="w-full h-full object-contain" />
                     </div>
                     <h1 className="text-3xl font-bold text-white mb-2">PsicoHub</h1>
                     <p className="text-gray-300 text-sm">Sistema de Gestão Clínica</p>

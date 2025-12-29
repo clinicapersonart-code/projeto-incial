@@ -35,7 +35,7 @@ export const LoginPage: React.FC = () => {
                         <img src="/logo.png" alt="PsicoHub" className="w-full h-full object-contain" />
                     </div>
                     <h1 className="text-3xl font-bold text-white mb-2">PsicoHub</h1>
-                    <p className="text-gray-300 text-sm">Sistema de Gestão Clínica</p>
+                    <p className="text-gray-300 text-sm">Da formulação ao resultado, com evidência</p>
                 </div>
 
                 {/* Login Button */}

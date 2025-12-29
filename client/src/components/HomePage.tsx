@@ -76,7 +76,7 @@ export const HomePage: React.FC = () => {
                         </div>
                         <div>
                             <h1 className="text-xl font-bold text-gray-900">PsicoHub</h1>
-                            <p className="text-xs text-gray-500">Sistema de Gestão Clínica</p>
+                            <p className="text-xs text-gray-500">Da formulação ao resultado, com evidência</p>
                         </div>
                     </div>
 

@@ -159,6 +159,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isColl
                 {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3 rotate-90" />}
             </button>
 
+            {/* PsicoHub Brand Header */}
+            <div className={`p-4 border-b border-gray-800/50 ${isCollapsed ? 'px-2' : ''}`}>
+                <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : ''}`}>
+                    <div className="w-8 h-8 flex-shrink-0">
+                        <img src="/logo.png" alt="PsicoHub" className="w-full h-full object-contain" />
+                    </div>
+                    {!isCollapsed && (
+                        <div>
+                            <h1 className="text-white font-bold text-sm">PsicoHub</h1>
+                            <p className="text-gray-500 text-[10px] leading-tight">Da formulação ao resultado</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Patient Header */}
             <div className={`p-6 border-b border-gray-800 bg-gradient-to-r from-indigo-900/30 to-purple-900/30 ${isCollapsed ? 'px-2' : ''}`}>
                 <div className={`flex items-center gap-3 mb-4 ${isCollapsed ? 'justify-center' : ''}`}>

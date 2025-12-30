@@ -163,7 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isColl
             <div className={`p-4 border-b border-gray-800/50 ${isCollapsed ? 'px-2' : ''}`}>
                 <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : ''}`}>
                     <div className="w-8 h-8 flex-shrink-0">
-                        <img src="https://i.ibb.co/N2J6QYLm/psicohublogo.png" alt="PsicoHub" className="w-full h-full object-contain" />
+                        <img src="https://i.ibb.co/DHmcwh8r/psicohublogo.png" alt="PsicoHub" className="w-full h-full object-contain" />
                     </div>
                     {!isCollapsed && (
                         <div>

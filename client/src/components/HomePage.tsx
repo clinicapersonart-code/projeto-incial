@@ -72,7 +72,7 @@ export const HomePage: React.FC = () => {
                     {/* Logo/Brand */}
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10">
-                            <img src="/logo.png" alt="PsicoHub" className="w-full h-full object-contain" />
+                            <img src="https://i.ibb.co/N2J6QYLm/psicohublogo.png" alt="PsicoHub" className="w-full h-full object-contain" />
                         </div>
                         <div>
                             <h1 className="text-xl font-bold text-gray-900">PsicoHub</h1>

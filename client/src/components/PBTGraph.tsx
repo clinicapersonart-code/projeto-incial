@@ -229,19 +229,7 @@ const CustomPBTNode = ({ data, id, selected }: NodeProps) => {
       <Handle type="source" position={Position.Left} id="left" className="opacity-0" />
       <Handle type="target" position={Position.Left} id="left-target" className="opacity-0" style={{ top: '10%' }} />
 
-      {/* Category Badge */}
-      {showBadges && !data.hideLabels && (
-        <div
-          className="absolute -top-6 left-1/2 -translate-x-1/2 z-10 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider whitespace-nowrap border"
-          style={{
-            backgroundColor: `${categoryColor}20`,
-            borderColor: `${categoryColor}60`,
-            color: categoryColor
-          }}
-        >
-          {categoryBase.label}
-        </div>
-      )}
+      {/* Category Badge - Moved outside, removed */}
 
       {/* Target Star */}
       {isTarget && (
@@ -265,6 +253,20 @@ const CustomPBTNode = ({ data, id, selected }: NodeProps) => {
         onMouseEnter={data.onNodeHover}
         onMouseLeave={data.onNodeLeave}
       >
+        {/* Category Badge - INSIDE the node */}
+        {showBadges && !data.hideLabels && (
+          <div
+            className="mb-2 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider w-fit border"
+            style={{
+              backgroundColor: `${categoryColor}20`,
+              borderColor: `${categoryColor}60`,
+              color: categoryColor
+            }}
+          >
+            {categoryBase.label}
+          </div>
+        )}
+
         <div className={`${fontSize} font-bold leading-tight mb-2 drop-shadow-sm transition-colors duration-200`} style={{ color: colors.textPrimary }}>
           {data.label}
         </div>

@@ -1114,9 +1114,9 @@ export function PBTGraph({ nodes: initialDataNodes, edges: initialDataEdges, onG
   }
 
   return (
-    <div style={{ width: '100%', height: '750px', backgroundColor: currentTheme.background }} className="border border-white/10 rounded-xl overflow-hidden relative group shadow-inner transition-colors duration-500">
-      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-        <div className="relative w-full h-full max-w-[1200px] max-h-[800px]">
+    <div style={{ width: '100%', height: 'calc(100vh - 120px)', backgroundColor: currentTheme.background }} className="overflow-hidden relative group transition-colors duration-500 rounded-lg">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="relative w-full h-full">
           {/* BackgroundMatrix removed - using Region Nodes now */}
           <div className="absolute inset-0 z-10">
             <ReactFlow

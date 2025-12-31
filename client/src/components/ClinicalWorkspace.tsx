@@ -262,15 +262,8 @@ export const ClinicalWorkspace: React.FC = () => {
                 }
 
                 return (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-black border border-slate-800 rounded-xl p-6 shadow-2xl relative overflow-hidden">
-                            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"></div>
-                            <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400 mb-2 flex items-center gap-2 relative z-10">
-                                <BrainCircuit className="w-6 h-6 text-cyan-400" />REDE DE PROCESSOS PBT
-                                {result ? <span className="text-xs bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">Análise Atual</span> : <span className="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">Histórico do Paciente</span>}
-                            </h3>
-                            <PBTGraph nodes={pbtData.nodes} edges={pbtData.edges} onGraphUpdate={handleGraphUpdate} />
-                        </div>
+                    <div className="h-full w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <PBTGraph nodes={pbtData.nodes} edges={pbtData.edges} onGraphUpdate={handleGraphUpdate} />
                     </div>
                 );
 
